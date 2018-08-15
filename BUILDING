@@ -1,0 +1,29 @@
+libSCOF uses the cmake build system.
+
+libSCOF depends on OpenVolumeMesh 2.0, which is available on www.openvolumemesh.org.
+
+In order to build libSCOF, you can perform the following steps:
+
+# Clone libSCOF
+git clone https://www.graphics.rwth-aachen.de:9000/SCOF/SingularityConstrainedOctahedralFields libSCOF
+cd libSCOF
+
+# Create build directory
+mkdir build
+cd build
+
+# Initialize the build directory
+cmake -D OPENMESH_INCLUDE_DIR=/path/to/OpenMesh/src \
+	-D OPENMESH_CORE_LIBRARY=/path/to/OpenMesh/Core/binaries \
+	-D OPENMESH_TOOLS_LIBRARY=/path/to/OpenMesh/Tools/binaries \
+	-D OPENVOLUMEMESH_INCLUDE_DIR=/path/to/OpenVolumeMesh/src \
+	-D OPENVOLUMEMESH_LIBRARY_DIR=/path/to/OpenVolumeMesh/binaries \
+	-D EIGEN3_INCLUDE_DIR=/path/to/eigen3 \
+	-D GMM_INCLUDE_DIR=/path/to/gmm \ 
+	-D CHOLMOD_INCLUDE_DIR=/path/to/cholmod ..
+
+# Build
+make
+
+# Try a demo
+./demo/scof/scof ../demo/scof/ellipsoid.ovm ../demo/scof/ellipsoid_output.ovm
