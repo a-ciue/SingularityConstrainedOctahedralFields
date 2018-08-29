@@ -1016,10 +1016,10 @@ merge_volume_charts()
 	add_tangent_continuity_constraints();
 
 	//connect independent sg components
-	if(max_comp_i_ > 1)
+	if(max_comp_i_ >= 1)
 	{
 		std::cerr<<"\n#######Connect interior graph components";
-		std::cerr<<"\nmax comp_i: "<<max_comp_i_;
+		std::cerr<<"\nMax comp_i: "<<max_comp_i_;
 		connect_interior_graph_components();
 
 		//check
@@ -1027,8 +1027,6 @@ merge_volume_charts()
 			return;
 	}
 
-	//higher genus, and sg is not closed
-	add_constraint_to_avoid_twist();
 
 	std::cerr<<"\nMerge as many charts as possible...";
 	int tags[4] = {1, 2, -1, -2};
@@ -1055,7 +1053,7 @@ constrained_chart_mergingTB()
 	VP<bool> unconnected_vh_prop =
 			mesh_.template request_vertex_property<bool>("unconnected_vh");
 
-	//for all interior singular tubers that are incident to the boundary, merge to boundary charts
+	//for all interior singular tubes that are incident to the boundary, merge to boundary charts
 	for(auto vhi : mesh_.vertices())
 		if(mesh_.is_boundary(vhi) && unconnected_vh_prop[vhi])
 		{
@@ -1120,8 +1118,6 @@ constrained_chart_mergingTB()
 			update_chart_index_mapping(tube_chart_id, bc_id);
 			unconnected_vh_prop[vhi] = false;
 		}
-
-	mesh_.set_persistent(unconnected_vh_prop, false);
 }
 
 
@@ -1324,7 +1320,7 @@ get_path_from_fan_to_boundary_restricting_to_the_vertex(const EH _eh, std::vecto
 template <class MeshT1, class MeshT2>
 void
 MatchingsAndAlignmentExtractionT<MeshT1, MeshT2>::
-shortest_dual_path_from_cell_to_edge_restricting_to_the_vertex(const CH _ch, const EH _eh, std::vector<HFH>& _hfs)const
+shortest_dual_path_from_cell_to_edge_restricting_to_the_vertex(const CH _ch, const EH _eh, std::vector<HFH>& _hfs, bool _block_free)const
 {
 	//get the common vertex
 	auto cell_vhs = mesh_.get_cell_vertices(_ch);
@@ -1349,7 +1345,7 @@ shortest_dual_path_from_cell_to_edge_restricting_to_the_vertex(const CH _ch, con
 	std::map<CH, HFH> pre_dp;
 	for(auto vc_it = mesh_.vc_iter(common_vh[0]); vc_it.valid(); ++vc_it)
 	{
-		if(cell_tag_[*vc_it] == 0)
+		if(cell_tag_[*vc_it] == 0 || _block_free)
 			cell_free[*vc_it] = true;
 		pre_dp[*vc_it] = HFH(-1);
 	}
@@ -1383,7 +1379,7 @@ shortest_dual_path_from_cell_to_edge_restricting_to_the_vertex(const CH _ch, con
 				break;
 			}
 
-			if(cell_tag_[ch_opp] == 0 && cell_free[ch_opp])
+			if((_block_free || cell_tag_[ch_opp] == 0) && cell_free[ch_opp])
 			{
 				cell_free[ch_opp] = false;
 				pre_dp[ch_opp] = hf_opp;
@@ -1537,7 +1533,7 @@ local_decidable_chart_merging(std::map<EH, std::vector<int> >& _eh_to_corners)
 		}
 
 	//if there's no locally decidable corner, e.g. sphere, any solution is globally valid
-	if(need_initial_connect)
+	if(need_initial_connect && !v_corners_.empty())
 	{
 		std::cerr<<"\nInitial connect...";
 		HEH he_connected(-1);
@@ -1654,15 +1650,21 @@ get_end_edges_of_an_arc(const HEH _he_first, std::vector<EH>& _ehs)const
 template <class MeshT1, class MeshT2>
 void
 MatchingsAndAlignmentExtractionT<MeshT1, MeshT2>::
-update_interior_graph_component_property()
+update_interior_graph_component_property(const int _id0, const int _id1)
 {
-	for(auto ehi : mesh_.edges())
-		if(sg_comp_i_[ehi] == 2)
-			sg_comp_i_[ehi] = 1;
+	if(_id0 == _id1)
+		return;
+
+	int id_min = _id0 < _id1 ? _id0 : _id1;
+	int id_max = _id0 > _id1 ? _id0 : _id1;
 
 	for(auto ehi : mesh_.edges())
-		if(sg_comp_i_[ehi] == max_comp_i_)
-			sg_comp_i_[ehi] = 2;
+		if(sg_comp_i_[ehi] == id_max)
+			sg_comp_i_[ehi] = id_min;
+
+	for(auto ehi : mesh_.edges())
+		if(sg_comp_i_[ehi] > id_max)
+			sg_comp_i_[ehi] = sg_comp_i_[ehi] - 1;
 
 	max_comp_i_--;
 }
@@ -1671,15 +1673,21 @@ update_interior_graph_component_property()
 template <class MeshT1, class MeshT2>
 void
 MatchingsAndAlignmentExtractionT<MeshT1, MeshT2>::
-update_boundary_graph_component_property()
+update_boundary_graph_component_property(const int _id0, const int _id1)
 {
-	for(auto ehi : mesh_.edges())
-		if(sg_comp_b_[ehi] == 2)
-			sg_comp_b_[ehi] = 1;
+	if(_id0 == _id1)
+		return;
+
+	int id_min = _id0 < _id1 ? _id0 : _id1;
+	int id_max = _id0 > _id1 ? _id0 : _id1;
 
 	for(auto ehi : mesh_.edges())
-		if(sg_comp_b_[ehi] == max_comp_b_)
-			sg_comp_b_[ehi] = 2;
+		if(sg_comp_b_[ehi] == id_max)
+			sg_comp_b_[ehi] = id_min;
+
+	for(auto ehi : mesh_.edges())
+		if(sg_comp_b_[ehi] > id_max)
+			sg_comp_b_[ehi] = sg_comp_b_[ehi] - 1;
 
 	max_comp_b_--;
 }
@@ -1713,7 +1721,7 @@ constrained_chart_mergingP()
 	//search on all patches
 	for(auto patch : patches)
 	{
-		//if the patch is already detemined
+		//if the patch is already determined
 		if(trans_prop_[patch[0]] != -1)
 			continue;
 
@@ -1735,7 +1743,7 @@ constrained_chart_mergingP()
 		if(!solved)
 			continue;
 
-		//assign transtion
+		//assign transition
 		trans_prop_[hf_breach] = unique_trans;
 		trans_prop_[mesh_.opposite_halfface_handle(hf_breach)] = tq_.inverse_transition_idx(unique_trans);
 
@@ -1746,6 +1754,10 @@ constrained_chart_mergingP()
 		int chart1 = real_chart_id_[chart_id_[mesh_.incident_cell(mesh_.opposite_halfface_handle(hf_breach))]];
 		update_chart_index_mapping(chart0, chart1);
 	}
+	VP<bool> unconnected_vh_prop =
+			mesh_.template request_vertex_property<bool>("unconnected_vh");
+	mesh_.set_persistent(unconnected_vh_prop, false);
+
 }
 
 
@@ -1851,6 +1863,8 @@ void
 MatchingsAndAlignmentExtractionT<MeshT1, MeshT2>::
 get_singular_vertices_on_patch(const std::vector<HFH>& _patch, std::vector<VH>& _patch_sg_vhs)const
 {
+	VP<bool> unconnected_vh_prop =
+			mesh_.template request_vertex_property<bool>("unconnected_vh");
 	std::vector<bool> is_vt_visited(mesh_.n_vertices(), false);
 	for(auto hfi : _patch)
 	{
@@ -1858,7 +1872,7 @@ get_singular_vertices_on_patch(const std::vector<HFH>& _patch, std::vector<VH>& 
 		{
 			if(is_vt_visited[hfv.idx()])
 				continue;
-			if((is_singular_vt_[hfv] && mesh_.is_boundary(hfv))
+			if(unconnected_vh_prop[hfv]
 					|| node_type_[hfv] > 0)
 			{
 				is_vt_visited[hfv.idx()] = true;
@@ -1944,7 +1958,7 @@ get_first_constraints_on_patch(const HFP<int>& _patch_id, const std::vector<VH>&
 			}
 		}
 
-		//if the singular vertex is at the end of a singular arc and on the boundary
+		//if the singular vertex is on the boundary
 		if(mesh_.is_boundary(vhi))
 		{
 			HEH sg_he(-1);
@@ -1986,6 +2000,80 @@ get_first_constraints_on_patch(const HFP<int>& _patch_id, const std::vector<VH>&
 			HFH hf_p(-1);
 			if((_patch_id[mesh_.opposite_halfface_handle(hf_tmp)] || _patch_id[hf_tmp])
 					&& n_unknown == 1)
+				hf_p = hf_tmp;
+
+			if(!hf_p.is_valid())
+				continue;
+
+			int idx0 = 0, idx1 = 0;
+			bool hf_found = false;
+			for(auto hfi : dpath)
+			{
+				if(hfi == hf_p)
+				{
+					hf_found = true;
+					continue;
+				}
+				if(!hf_found)
+					idx0 = tq_.mult_transitions_idx(trans_prop_[hfi], idx0);
+				else
+					idx1 = tq_.mult_transitions_idx(trans_prop_[hfi], idx1);
+			}
+
+			std::vector<int> trans;
+			for(int ii=0; ii<24; ++ii)
+				if(axis_after_transition(axis, ii) == 0)
+				{
+					int idx_tmp = tq_.mult_transitions_idx(tq_.inverse_transition_idx(idx1), tq_.mult_transitions_idx(ii, tq_.inverse_transition_idx(idx0)));
+					trans.push_back(idx_tmp);
+				}
+
+			if(_patch_id[mesh_.opposite_halfface_handle(hf_p)])
+			{
+				for(int ii=0; ii<4; ++ii)
+					trans[ii] = tq_.inverse_transition_idx(trans[ii]);
+
+				hf_p = mesh_.opposite_halfface_handle(hf_p);
+			}
+			if(hf_p.is_valid())
+			{
+				_hfs.push_back(hf_p);
+				_v_trans.push_back(trans);
+			}
+		}
+		//if the singular vertex is on a singular circle
+		if(!mesh_.is_boundary(vhi) && node_type_[vhi] == 0)
+		{
+			std::vector<EH> ehs;
+			for(auto vohe_it = mesh_.voh_iter(vhi); vohe_it.valid(); ++vohe_it)
+				if(valance_[mesh_.edge_handle(*vohe_it)] != 0)
+					ehs.push_back(mesh_.edge_handle(*vohe_it));
+
+			if(ehs.size() != 2)
+			{
+				std::cerr<<"\nError: adjacent singular edge number is not 2!";
+			}
+			auto he0 = mesh_.halfedge_handle(ehs[0], 0);
+			auto he1 = mesh_.halfedge_handle(ehs[1], 0);
+
+			int axis = are_halfedges_the_same_direction(he0, he1) ? 0 : 1;
+
+			std::vector<HFH> dpath;
+			auto ch_s = *mesh_.hec_iter(he0);
+
+			shortest_dual_path_from_cell_to_edge_restricting_to_the_vertex(ch_s, ehs[1], dpath, true);
+
+			HFH hf_tmp(-1);
+			int n_unknown = 0;
+			for(auto hfi : dpath)
+				if(trans_prop_[hfi] == -1)
+				{
+					hf_tmp = hfi;
+					n_unknown++;
+				}
+			HFH hf_p(-1);
+			if((_patch_id[mesh_.opposite_halfface_handle(hf_tmp)] || _patch_id[hf_tmp])
+			   && n_unknown == 1)
 				hf_p = hf_tmp;
 
 			if(!hf_p.is_valid())
@@ -2401,7 +2489,7 @@ exhaustive_search(const std::vector<FH>& _uk_fhs, const std::vector<HFH>& _hfs, 
 		}
 
 		zip_edges(false);
-//		std::cerr<<"\nface: "<<mesh_.face_handle(_hfs[0])<<" transiton: "<<trans_prop_[_hfs[0]]<<" count: "<<count;
+		std::cerr<<"\nface: "<<mesh_.face_handle(_hfs[0])<<" transiton: "<<trans_prop_[_hfs[0]]<<" count: "<<count;
 
 		if(check_solved_regular_edges_transitions(true))
 		{
@@ -2954,142 +3042,111 @@ void
 MatchingsAndAlignmentExtractionT<MeshT1, MeshT2>::
 connect_interior_graph_components()
 {
-	if(max_comp_i_ <= 1)
+	if(max_comp_i_ < 1)
 		return;
 
-	//if there's no comp touching boundary, connect first component(circle) to boundary
-	bool is_all_circle = true;
-	for(auto ehi : mesh_.edges())
-		if(sg_comp_i_[ehi] == 1)
-		{
-			if(arc_type_[ehi] != 2)
-				is_all_circle = false;
-
-			break;
-		}
-
-	if(is_all_circle)
+	MP<std::vector<std::vector<HFH> > > itr_dp_prop = mesh_.template request_mesh_property<std::vector<std::vector<HFH> > >(
+			"interior_dual_paths");
+	for(size_t i=0; i<itr_dp_prop[0].size(); ++i)
 	{
-		//choose a cell
-		EH eh_1;
-		for(auto ehi : mesh_.edges())
-			if(sg_comp_i_[ehi] == 1 && status_[ehi].selected())
-			{
-				eh_1 = ehi;
-				break;
-			}
-		if(!eh_1.is_valid())
+		std::vector<HEH> hes;
+		int ac_type = additional_constraint_type(itr_dp_prop[0][i], hes);
+		if(ac_type == 4)
 		{
-			std::cerr<<"\nError: no additional constraints is found! Solve may get stuck or the solution might not be optimum!";
-			return;
-		}
-		auto ch_1 = *mesh_.hec_iter(mesh_.halfedge_handle(eh_1, 0));
-
-		std::vector<HFH> dpath;
-		shortest_dual_path_from_cell_to_boundary(ch_1, dpath);
-
-		connect_via_dual_path(dpath, 2, 0);
-	}
-
-//	//add constraints in component one(fertility_rsf)
-//	std::vector<EH> ehs2;
-//	for(auto ehi : mesh_.edges())
-//		if(sg_comp_i_[ehi] == 1 && status_[ehi].selected())
-//			ehs2.push_back(ehi);
-//
-//	if(ehs2.size() == 2)
-//	{
-//		auto ch_2 = *mesh_.hec_iter(mesh_.halfedge_handle(ehs2[0], 0));
-//		auto he2 = (axes_prop_[ch_2][mesh_.halfedge_handle(ehs2[0], 0)] == 0) ?
-//				mesh_.halfedge_handle(ehs2[0], 0) : mesh_.halfedge_handle(ehs2[0], 1);
-//
-//		auto ch_1 = *mesh_.hec_iter(mesh_.halfedge_handle(ehs2[1], 0));
-//		auto he1 = (axes_prop_[ch_1][mesh_.halfedge_handle(ehs2[1], 0)] == 0) ?
-//				mesh_.halfedge_handle(ehs2[1], 0) : mesh_.halfedge_handle(ehs2[1], 1);
-//
-//		std::cerr<<"\nch1: "<<ch_1<<" ch_2: "<<ch_2;
-//		std::cerr<<"\nhe1: "<<mesh_.halfedge(he1).from_vertex()<<" "<<mesh_.halfedge(he1).to_vertex()
-//				<<" he2: "<<mesh_.halfedge(he2).from_vertex()<<" "<<mesh_.halfedge(he2).to_vertex()
-//				<<" "<<axes_prop_[ch_1][he1]<<" "<<axes_prop_[ch_2][he2];
-//
-//		std::vector<HFH> dpath2;
-//		shortest_dual_path_between_cells(ch_2, ch_1, dpath2);
-//
-//		int axis_2 = 0;
-//		auto vec0 = mesh_.vertex(mesh_.halfedge(he1).to_vertex()) - mesh_.vertex(mesh_.halfedge(he1).from_vertex());
-//		vec0.normalize();
-//		auto vec1 = mesh_.vertex(mesh_.halfedge(he2).to_vertex()) - mesh_.vertex(mesh_.halfedge(he2).from_vertex());
-//		vec1.normalize();
-//
-//		if((vec0|vec1) < 0.0)
-//			axis_2 = 1;
-//
-//		connect_via_dual_path(dpath2, 0, axis_2);
-//	}
-
-
-	//connect other components
-	//choose a cell
-	while(max_comp_i_ > 1)
-	{
-		std::vector<EH> ehs2;
-		for(auto ehi : mesh_.edges())
-			if(sg_comp_i_[ehi] == 2 && status_[ehi].selected())
-				ehs2.push_back(ehi);
-
-		if(ehs2.empty())
-		{
-			std::cerr<<"\nError: no additional constraints is found! Solve may get stuck or the solution might not be optimum!";
-			update_interior_graph_component_property();
+			std::cerr<<"\nError: invalid additional constraints!";
 			continue;
 		}
-
-		for(auto eh_2 : ehs2)
+		if(ac_type == 0)
 		{
-			auto ch_2 = *mesh_.hec_iter(mesh_.halfedge_handle(eh_2, 0));
-			auto he2 = (axes_prop_[ch_2][mesh_.halfedge_handle(eh_2, 0)] == 0) ?
-					mesh_.halfedge_handle(eh_2, 0) : mesh_.halfedge_handle(eh_2, 1);
-
-			EH eh_1;
-			find_closest_parallel_singular_edges(eh_2, 1, eh_1);
-			status_[eh_1].set_selected(true);
-			auto ch_1 = *mesh_.hec_iter(mesh_.halfedge_handle(eh_1, 0));
-			auto he1 = (axes_prop_[ch_1][mesh_.halfedge_handle(eh_1, 0)] == 0) ?
-					mesh_.halfedge_handle(eh_1, 0) : mesh_.halfedge_handle(eh_1, 1);
-
-//			std::cerr<<"\nch1: "<<ch_1<<" ch_2: "<<ch_2;
-//			std::cerr<<"\nhe1: "<<mesh_.halfedge(he1).from_vertex()<<" "<<mesh_.halfedge(he1).to_vertex()
-//					<<" he2: "<<mesh_.halfedge(he2).from_vertex()<<" "<<mesh_.halfedge(he2).to_vertex()
-//					<<" "<<axes_prop_[ch_1][he1]<<" "<<axes_prop_[ch_2][he2];
-
-			std::vector<HFH> dpath2;
-			shortest_dual_path_between_cells(ch_2, ch_1, dpath2);
-
+			connect_via_dual_path(itr_dp_prop[0][i], 2, 0);
+			continue;
+		}else if(ac_type == 1)
+		{
 			int axis_2 = 0;
-			auto vec0 = mesh_.vertex(mesh_.halfedge(he1).to_vertex()) - mesh_.vertex(mesh_.halfedge(he1).from_vertex());
-			vec0.normalize();
-			auto vec1 = mesh_.vertex(mesh_.halfedge(he2).to_vertex()) - mesh_.vertex(mesh_.halfedge(he2).from_vertex());
-			vec1.normalize();
+			auto vec0 = mesh_.vertex(mesh_.halfedge(hes[0]).to_vertex()) - mesh_.vertex(mesh_.halfedge(hes[0]).from_vertex());
+			auto vec1 = mesh_.vertex(mesh_.halfedge(hes[1]).to_vertex()) - mesh_.vertex(mesh_.halfedge(hes[1]).from_vertex());
 
 			if((vec0|vec1) < 0.0)
 				axis_2 = 1;
 
-			connect_via_dual_path(dpath2, 0, axis_2);
+			connect_via_dual_path(itr_dp_prop[0][i], 0, axis_2);
+		}else if(ac_type == 2)
+		{
+			int axis_2 = 2;
+			auto vec0 = mesh_.vertex(mesh_.halfedge(hes[0]).to_vertex()) - mesh_.vertex(mesh_.halfedge(hes[0]).from_vertex());
+			auto vec1 = mesh_.vertex(mesh_.halfedge(hes[1]).to_vertex()) - mesh_.vertex(mesh_.halfedge(hes[1]).from_vertex());
+
+			if((vec0|vec1) < 0.0)
+				axis_2 = 3;
+
+			connect_via_dual_path(itr_dp_prop[0][i], 0, axis_2);
+		}else if(ac_type == 3)
+		{
+			int axis_2 = 0;
+			auto vec0 = mesh_.vertex(mesh_.halfedge(hes[0]).to_vertex()) - mesh_.vertex(mesh_.halfedge(hes[0]).from_vertex());
+			auto vec1 = mesh_.vertex(mesh_.halfedge(hes[1]).to_vertex()) - mesh_.vertex(mesh_.halfedge(hes[1]).from_vertex());
+
+			if((vec0|vec1) < 0.0)
+				axis_2 = 1;
+
+			connect_via_dual_path(itr_dp_prop[0][i], 2, axis_2);
 		}
 
-		//update component property
-		update_interior_graph_component_property();
-		check_solved_regular_edges_transitions();
+		update_interior_graph_component_property(sg_comp_i_[mesh_.edge_handle(hes[0])], sg_comp_i_[mesh_.edge_handle(hes[1])]);
+//		check_solved_regular_edges_transitions();
 	}
 
 	std::cerr<<"\nMax comp_i: "<<max_comp_i_;
+}
+
+template <class MeshT1, class MeshT2>
+int
+MatchingsAndAlignmentExtractionT<MeshT1, MeshT2>::
+additional_constraint_type(const std::vector<HFH>& _dpath, std::vector<HEH>& _hes)
+{
+	CH ch0 = mesh_.incident_cell(mesh_.opposite_halfface_handle(_dpath[0]));
+	CH ch1 = mesh_.incident_cell(_dpath[_dpath.size()-1]);
+
+	std::vector<EH> cell_ehs0, cell_ehs1;
+	cell_edges(ch0, cell_ehs0);
+	cell_edges(ch1, cell_ehs1);
+
+	std::vector<EH> ehs;
+	for(auto ehi : cell_ehs0)
+		if(valance_[ehi] != 0)
+		{
+			auto he0 = (axes_prop_[ch0][mesh_.halfedge_handle(ehi, 0)] != -1) ?
+					   mesh_.halfedge_handle(ehi, 0) : mesh_.halfedge_handle(ehi, 1);
+			_hes.push_back(he0);
+		}
+	for(auto ehi : cell_ehs1)
+		if(valance_[ehi] != 0)
+		{
+			auto he1 = (axes_prop_[ch1][mesh_.halfedge_handle(ehi, 0)] != -1) ?
+					   mesh_.halfedge_handle(ehi, 0) : mesh_.halfedge_handle(ehi, 1);
+			_hes.push_back(he1);
+		}
+
+	if(_hes.size() == 1)//interior singular edge direction is orthogonal to surface normal
+		return 0;
+	else if(_hes.size() == 2)
+	{
+		if(!mesh_.is_boundary(_hes[0]) && !mesh_.is_boundary(_hes[1]))//both are interior
+			return 1;
+		else if(mesh_.is_boundary(_hes[0]) && !mesh_.is_boundary(_hes[1]))//one is boundary and the other is interior
+			return 2;
+		else if(!mesh_.is_boundary(_hes[0]) && mesh_.is_boundary(_hes[1]))//one is boundary and the other is interior
+			return 3;
+	}
+
+	return 4;
 }
 
 
 template <class MeshT1, class MeshT2>
 void
 MatchingsAndAlignmentExtractionT<MeshT1, MeshT2>::
-connect_via_dual_path(const std::vector<HFH>& _dpath, int _axis1, int _axis2)
+connect_via_dual_path(const std::vector<HFH>& _dpath, const int _axis1, const int _axis2)
 {
 	//find first unknown halfface
 	int trans0 = 0, trans1 = 0;
@@ -3161,53 +3218,6 @@ connect_via_dual_path(const std::vector<HFH>& _dpath, int _axis1, int _axis2)
 template <class MeshT1, class MeshT2>
 void
 MatchingsAndAlignmentExtractionT<MeshT1, MeshT2>::
-find_closest_parallel_singular_edges(const EH _eh0, const int _comp, EH &_eh1)const
-{
-	auto vh_s = mesh_.edge(_eh0).from_vertex();
-	//find the other
-	double min_length = DBL_MAX;
-	if(!mesh_.is_boundary(_eh0))
-	{
-		for(auto ehi : mesh_.edges())
-			if(sg_comp_i_[ehi] == _comp)
-			{
-				auto vh_e = mesh_.edge(ehi).from_vertex();
-				auto dist = distance(vh_s, vh_e);
-				if(dist < min_length)
-				{
-					min_length = dist;
-					_eh1 = ehi;
-				}
-			}
-	}else
-	{
-		for(auto ehi : mesh_.edges())
-			if(sg_comp_b_[ehi] == _comp)
-			{
-				auto vh_e = mesh_.edge(ehi).from_vertex();
-				auto dist = distance(vh_s, vh_e);
-				if(dist < min_length)
-				{
-					min_length = dist;
-					_eh1 = ehi;
-				}
-			}
-	}
-
-
-	auto vec0 = mesh_.vertex(mesh_.edge(_eh0).to_vertex()) - mesh_.vertex(vh_s);
-	vec0.normalize();
-	auto vec1 = mesh_.vertex(mesh_.edge(_eh1).to_vertex()) - mesh_.vertex(mesh_.edge(_eh1).from_vertex());
-	vec1.normalize();
-
-	if(std::abs(vec0|vec1) < 0.707)
-		std::cerr<<"\nWarning: two edges are not parallel!";
-}
-
-
-template <class MeshT1, class MeshT2>
-void
-MatchingsAndAlignmentExtractionT<MeshT1, MeshT2>::
 find_independent_unknown_halfface_transition(const std::vector<HFH>& _dpath, int& _pos)
 {
 	HFP<int> trans_prop_t = mesh_.template request_halfface_property<int>("trans_property_temp");
@@ -3251,174 +3261,110 @@ find_independent_unknown_halfface_transition(const std::vector<HFH>& _dpath, int
 template <class MeshT1, class MeshT2>
 void
 MatchingsAndAlignmentExtractionT<MeshT1, MeshT2>::
-shortest_dual_path_from_cell_to_boundary(const CH _ch, std::vector<HFH>& _dpath)const
+connect_boundary_graph_components(std::vector<int>& _chart_index)
 {
-	std::vector<bool> cell_visited(mesh_.n_cells(), false);
-	std::vector<HFH> pre_hf(mesh_.n_cells(), HFH(-1));
+	if (max_comp_b_ <= 1)
+		return;
+	MP<std::vector<std::vector<HFH> > > bdy_dp_prop = mesh_.template request_mesh_property<std::vector<std::vector<HFH> > >(
+			"boundary_dual_paths");
 
-	std::queue<CH> que;
-	que.push(_ch);
-	cell_visited[_ch.idx()] = true;
-	bool reach_boundary = false;
-	CH ch_end(-1);
-	while(!que.empty() && !reach_boundary)
+	std::vector<std::vector<TriHEH> > tri_dps;
+	get_dual_paths_on_trimesh(tri_dps);
+
+
+	for (size_t i = 0; i < tri_dps.size(); ++i)
 	{
-		auto ch_cur = que.front();
-		que.pop();
+		//get singular halfedges
+		HEH sg_he0, sg_he1;
+		get_singular_halfedge_in_halfface(bdy_dp_prop[0][i][0], sg_he0);
+		get_singular_halfedge_in_halfface(bdy_dp_prop[0][i][bdy_dp_prop[0][i].size()-1], sg_he1);
 
-		auto hfs = mesh_.cell(ch_cur).halffaces();
-		for(int i=0; i<4; ++i)
-		{
-			auto hf_opp = mesh_.opposite_halfface_handle(hfs[i]);
-			if(mesh_.is_boundary(hf_opp))
-			{
-				reach_boundary = true;
-				ch_end = mesh_.incident_cell(hfs[i]);
-				break;
-			}
-			auto ch_opp = mesh_.incident_cell(hf_opp);
-			if(!cell_visited[ch_opp.idx()])
-			{
-				cell_visited[ch_opp.idx()] = true;
-				pre_hf[ch_opp.idx()] = hfs[i];
+		std::vector<int> v_trans;
+		for(int i=0; i<24; ++i)
+			if(axis_after_transition(0, i) == 0)//x map to x
+				v_trans.push_back(i);
 
-				que.push(ch_opp);
-			}
-		}
-	}
-
-	//get the path
-	std::vector<HFH> path_dpath;
-	std::queue<HFH> que_dpath;
-	que_dpath.push(pre_hf[ch_end.idx()]);
-	while(!que_dpath.empty())
-	{
-		auto hf = que_dpath.front();
-		que_dpath.pop();
-		if(hf == HFH(-1))
-			break;
-
-		path_dpath.push_back(mesh_.opposite_halfface_handle(hf));
-		que_dpath.push(pre_hf[mesh_.incident_cell(hf).idx()]);
-	}
-
-	for(auto r_it = path_dpath.rbegin(); r_it != path_dpath.rend(); ++r_it)
-		_dpath.push_back(*r_it);
-}
-
-
-template <class MeshT1, class MeshT2>
-void
-MatchingsAndAlignmentExtractionT<MeshT1, MeshT2>::
-shortest_dual_path_between_cells(const CH _ch0, const CH _ch1, std::vector<HFH>& _dpath)const
-{
-	std::vector<bool> cell_visited(mesh_.n_cells(), false);
-	std::vector<HFH> pre_hf(mesh_.n_cells(), HFH(-1));
-
-	std::queue<CH> que;
-	que.push(_ch0);
-	cell_visited[_ch0.idx()] = true;
-	bool cell_found = false;
-
-	while(!que.empty() && !cell_found)
-	{
-		auto ch_cur = que.front();
-		que.pop();
-
-		auto hfs = mesh_.cell(ch_cur).halffaces();
-		for(int i=0; i<4; ++i)
-		{
-			auto hf_opp = mesh_.opposite_halfface_handle(hfs[i]);
-			if(mesh_.is_boundary(hf_opp))
-				continue;
-			auto ch_opp = mesh_.incident_cell(hf_opp);
-			if(!cell_visited[ch_opp.idx()])
-			{
-				cell_visited[ch_opp.idx()] = true;
-				pre_hf[ch_opp.idx()] = hfs[i];
-
-				if(ch_opp == _ch1)
-				{
-					cell_found = true;
-					break;
-				}
-
-				que.push(ch_opp);
-			}
-		}
-	}
-
-	//get the path
-	std::vector<HFH> path_dpath;
-	std::queue<HFH> que_dpath;
-	que_dpath.push(pre_hf[_ch1.idx()]);
-	while(!que_dpath.empty())
-	{
-		auto hf = que_dpath.front();
-		que_dpath.pop();
-		if(hf == HFH(-1))
-			break;
-
-		path_dpath.push_back(mesh_.opposite_halfface_handle(hf));
-		que_dpath.push(pre_hf[mesh_.incident_cell(hf).idx()]);
-	}
-
-	for(auto r_it = path_dpath.rbegin(); r_it != path_dpath.rend(); ++r_it)
-		_dpath.push_back(*r_it);
-}
-
-
-
-
-template <class MeshT1, class MeshT2>
-void
-MatchingsAndAlignmentExtractionT<MeshT1, MeshT2>::
-add_constraint_to_avoid_twist()
-{
-	std::vector<HEH> hes;
-	for(auto vhi : mesh_.vertices())
-	{
-		if(status_[vhi].selected())
-			for(auto voh_it = mesh_.voh_iter(vhi); voh_it.valid(); ++voh_it)
-			{
-				EH eho = mesh_.edge_handle(*voh_it);
-				if(!mesh_.is_boundary(eho) && valance_[eho] != 0)
-				{
-					hes.push_back(*voh_it);
-					break;
-				}
-			}
-	}
-
-	if(hes.size() == 2)
-	{
-
-		auto ch_2 = *mesh_.hec_iter(hes[0]);
-		auto he2 = (axes_prop_[ch_2][hes[0]] == 0) ?
-				hes[0] : mesh_.opposite_halfedge_handle(hes[0]);
-
-		auto ch_1 = *mesh_.hec_iter(hes[1]);
-		auto he1 = (axes_prop_[ch_1][hes[1]] == 0) ?
-				hes[1] : mesh_.opposite_halfedge_handle(hes[1]);
-
-//		std::cerr<<"\nch1: "<<ch_1<<" ch_2: "<<ch_2;
-//		std::cerr<<"\nhe1: "<<mesh_.halfedge(he1).from_vertex()<<" "<<mesh_.halfedge(he1).to_vertex()
-//				<<" he2: "<<mesh_.halfedge(he2).from_vertex()<<" "<<mesh_.halfedge(he2).to_vertex()
-//				<<" "<<axes_prop_[ch_1][he1]<<" "<<axes_prop_[ch_2][he2];
-
-		std::vector<HFH> dpath2;
-		shortest_dual_path_between_cells(ch_2, ch_1, dpath2);
-
-		int axis_2 = 0;
-		auto vec0 = mesh_.vertex(mesh_.halfedge(he1).to_vertex()) - mesh_.vertex(mesh_.halfedge(he1).from_vertex());
+		//get transition
+		int axis_2 = 2;
+		auto vec0 = mesh_.vertex(mesh_.halfedge(sg_he0).to_vertex()) - mesh_.vertex(mesh_.halfedge(sg_he0).from_vertex());
 		vec0.normalize();
-		auto vec1 = mesh_.vertex(mesh_.halfedge(he2).to_vertex()) - mesh_.vertex(mesh_.halfedge(he2).from_vertex());
+		auto vec1 = mesh_.vertex(mesh_.halfedge(sg_he1).to_vertex()) - mesh_.vertex(mesh_.halfedge(sg_he1).from_vertex());
 		vec1.normalize();
 
 		if((vec0|vec1) < 0.0)
-			axis_2 = 1;
+			axis_2 = 3;
+		int trans = 0;
+		for(auto i : v_trans)
+			if(axis_after_transition(axis_2, i) == 2)//y map to +y or -y
+			{
+				trans = i;
+				break;
+			}
 
-		connect_via_dual_path(dpath2, 0, axis_2);
+		bool breach_found = false;
+		int count=0;
+		TriHEH he_uk(-1);
+		int trans0 = 0, trans1 = 0;
+		for(auto hei : tri_dps[i])
+		{
+			if(trimesh_.property(tri_val_, trimesh_.edge_handle(hei)) != 0)
+				continue;
+			if(trimesh_.property(tri_trans_, hei) == -1)
+			{
+				breach_found = true;
+				he_uk = hei;
+				count++;
+				continue;
+			}
+			if(!breach_found)
+			{
+				trans0 = tq_.mult_transitions_idx(trimesh_.property(tri_trans_, hei), trans0);
+			}else
+				trans1 = tq_.mult_transitions_idx(trimesh_.property(tri_trans_, hei), trans1);
+		}
+
+
+		if(!he_uk.is_valid())
+		{
+			std::cerr<<"\nError: cannot find open edge!";
+			return;
+		}
+		if(count != 1)
+			std::cerr<<"\nError: find "<<count<<"open edges!";
+
+		int trans_uk = tq_.mult_transitions_idx(tq_.inverse_transition_idx(trans1), tq_.mult_transitions_idx(trans ,tq_.inverse_transition_idx(trans0)));
+		trimesh_.property(tri_trans_,he_uk) = trans_uk;
+		trimesh_.property(tri_trans_, trimesh_.opposite_halfedge_handle(he_uk)) = tq_.inverse_transition_idx(trans_uk);
+
+		update_boundary_graph_component_property(sg_comp_b_[mesh_.edge_handle(sg_he0)],
+												 sg_comp_b_[mesh_.edge_handle(sg_he1)]);
+		update_boundary_chart_index(_chart_index, tri_dps[i][0], tri_dps[i][tri_dps[i].size()-1]);
+	}
+
+	std::cerr<<"\nMax comp_b: "<<max_comp_b_;
+}
+
+
+template <class MeshT1, class MeshT2>
+void
+MatchingsAndAlignmentExtractionT<MeshT1, MeshT2>::
+get_dual_paths_on_trimesh(std::vector<std::vector<TriHEH> >& _tri_dps)
+{
+	MP<std::vector<std::vector<HFH> > > bdy_dp_prop = mesh_.template request_mesh_property<std::vector<std::vector<HFH> > >(
+			"boundary_dual_paths");
+
+	for(auto hfs : bdy_dp_prop[0])
+	{
+		std::vector<TriHEH> tri_hes;
+		for(size_t i=0; i<hfs.size()-1; ++i)
+		{
+			auto he_common = common_halfedge_handle(mesh_.opposite_halfface_handle(hfs[i]), hfs[i+1]);
+			auto he_tri = trimesh_.find_halfedge(vh_to_trivh_[mesh_.halfedge(he_common).from_vertex()],
+					vh_to_trivh_[mesh_.halfedge(he_common).to_vertex()]);
+			tri_hes.push_back(he_tri);
+		}
+
+	    _tri_dps.push_back(tri_hes);
 	}
 }
 
@@ -3426,201 +3372,43 @@ add_constraint_to_avoid_twist()
 template <class MeshT1, class MeshT2>
 void
 MatchingsAndAlignmentExtractionT<MeshT1, MeshT2>::
-connect_boundary_graph_components(std::vector<int>& _chart_index)
+get_singular_halfedge_in_halfface(const HFH _hf, HEH& _he)
 {
-	//connect other components
-	//choose a cell
-	while(max_comp_b_ > 1)
-	{
-		std::vector<EH> ehs2;
-		for(auto ehi : mesh_.edges())
-			if(sg_comp_b_[ehi] == 2 && status_[ehi].selected())
-				ehs2.push_back(ehi);
-
-		if(ehs2.empty())
+	std::vector<HEH> hes = mesh_.halfface(_hf).halfedges();
+	for(auto hei : hes)
+		if(valance_[mesh_.edge_handle(hei)] != 0)
 		{
-			std::cerr<<"\nWarning: no additional constraints is found! Solve may get stuck or the solution might not be optimum!";
-			update_boundary_graph_component_property();
-
-			continue;
+			CH ch = *mesh_.hec_iter(hei);
+			if(axes_prop_[ch][hei] == -1)
+				_he = mesh_.opposite_halfedge_handle(hei);
+			else
+				_he = hei;
+			break;
 		}
-
-
-		for(auto eh_2 : ehs2)
-		{
-			auto ch_2 = *mesh_.hec_iter(mesh_.halfedge_handle(eh_2, 0));
-			auto he2 = (axes_prop_[ch_2][mesh_.halfedge_handle(eh_2, 0)] == 2) ?
-				mesh_.halfedge_handle(eh_2, 0) : mesh_.halfedge_handle(eh_2, 1);
-
-			auto he2_tri = trimesh_.find_halfedge(vh_to_trivh_[mesh_.halfedge(he2).from_vertex()],
-					vh_to_trivh_[mesh_.halfedge(he2).to_vertex()]);
-
-			EH eh_1;
-			find_closest_parallel_singular_edges(eh_2, 1, eh_1);
-			status_[eh_1].set_selected(true);
-			auto ch_1 = *mesh_.hec_iter(mesh_.halfedge_handle(eh_1, 0));
-			auto he1 = (axes_prop_[ch_1][mesh_.halfedge_handle(eh_1, 0)] == 2) ?
-				mesh_.halfedge_handle(eh_1, 0) : mesh_.halfedge_handle(eh_1, 1);
-
-			auto he1_tri = trimesh_.find_halfedge(vh_to_trivh_[mesh_.halfedge(he1).from_vertex()],
-					vh_to_trivh_[mesh_.halfedge(he1).to_vertex()]);
-
-//			std::cerr<<"\nch1: "<<ch_1<<" ch_2: "<<ch_2;
-//			std::cerr<<"\nhe1: "<<mesh_.halfedge(he1).from_vertex()<<" "<<mesh_.halfedge(he1).to_vertex()
-//						<<" he2: "<<mesh_.halfedge(he2).from_vertex()<<" "<<mesh_.halfedge(he2).to_vertex()
-//						<<" "<<axes_prop_[ch_1][he1]<<" "<<axes_prop_[ch_2][he2];
-
-			std::vector<OpenMesh::HalfedgeHandle> dpath2;
-			shortest_dual_path_between_faces_tri(trimesh_, trimesh_.face_handle(he2_tri), trimesh_.face_handle(he1_tri), dpath2);
-
-			std::vector<int> v_trans;
-			for(int i=0; i<24; ++i)
-				if(axis_after_transition(0, i) == 0)//x map to x
-					v_trans.push_back(i);
-
-			//get transition
-			int axis_2 = 2;
-			auto vec0 = mesh_.vertex(mesh_.halfedge(he1).to_vertex()) - mesh_.vertex(mesh_.halfedge(he1).from_vertex());
-			vec0.normalize();
-			auto vec1 = mesh_.vertex(mesh_.halfedge(he2).to_vertex()) - mesh_.vertex(mesh_.halfedge(he2).from_vertex());
-			vec1.normalize();
-
-			if((vec0|vec1) < 0.0)
-				axis_2 = 3;
-			int trans = 0;
-			for(auto i : v_trans)
-				if(axis_after_transition(axis_2, i) == 2)//y map to +y or -y
-				{
-					trans = i;
-					break;
-				}
-
-			bool breach_found = false;
-			int count=0;
-			TriHEH he_uk(-1);
-			int trans0 = 0, trans1 = 0;
-			for(auto hei : dpath2)
-			{
-				if(trimesh_.property(tri_val_, trimesh_.edge_handle(hei)) != 0)
-					continue;
-				if(trimesh_.property(tri_trans_, hei) == -1)
-				{
-					breach_found = true;
-					he_uk = hei;
-					count++;
-					continue;
-				}
-				if(!breach_found)
-				{
-					trans0 = tq_.mult_transitions_idx(trimesh_.property(tri_trans_, hei), trans0);
-				}else
-					trans1 = tq_.mult_transitions_idx(trimesh_.property(tri_trans_, hei), trans1);
-			}
-
-
-			if(!he_uk.is_valid())
-			{
-				std::cerr<<"\nError: cannot find open edge!";
-				return;
-			}
-			if(count != 1)
-				std::cerr<<"\nError: find "<<count<<"open edges!";
-
-			int trans_uk = tq_.mult_transitions_idx(tq_.inverse_transition_idx(trans1), tq_.mult_transitions_idx(trans ,tq_.inverse_transition_idx(trans0)));
-			trimesh_.property(tri_trans_,he_uk) = trans_uk;
-			trimesh_.property(tri_trans_, trimesh_.opposite_halfedge_handle(he_uk)) = tq_.inverse_transition_idx(trans_uk);
-
-//			std::cerr<<"\ntrans: "<<trans<<" trans0: "<<trans0<<" trans1: "<<trans1<<" trans_uk: "<<trans_uk;
-		}
-
-		//maybe not all boundary components are connected
-		for(auto fhi : trimesh_.faces())
-			if(_chart_index[fhi.idx()] == -2)
-				_chart_index[fhi.idx()] = -1;
-		for(auto fhi : trimesh_.faces())
-			if(_chart_index[fhi.idx()] == -max_comp_b_)
-				_chart_index[fhi.idx()] = -2;
-
-		//update component property
-		update_boundary_graph_component_property();
-	}
-	std::cerr<<"\nmax comp: "<<max_comp_b_;
 }
 
 
 template <class MeshT1, class MeshT2>
 void
 MatchingsAndAlignmentExtractionT<MeshT1, MeshT2>::
-shortest_dual_path_between_faces_tri(TriMesh& _trimesh, const TriFH _fh0, const TriFH _fh1,
-		std::vector<TriHEH>& _tri_hes)const
+update_boundary_chart_index(std::vector<int>& _chart_index, const TriHEH _he0, const TriHEH _he1)const
 {
-	_tri_hes.clear();
+	int id0 = _chart_index[(trimesh_.face_handle(_he0)).idx()];
+	int id1 = _chart_index[(trimesh_.face_handle(_he1)).idx()];
+	if(id0 == id1)
+		return;
 
-	//distance to _fh0
-	TriFP<int> dist;
-	_trimesh.add_property(dist);
-	//previous face on the path
-	TriFP<TriHEH> pre_dp;
-	_trimesh.add_property(pre_dp);
+	int id_min = id0 < id1 ? id0 : id1;
+	int id_max = id0 > id1 ? id0 : id1;
 
-	//initialize face property
-	for(auto f_it = _trimesh.faces_begin(); f_it != _trimesh.faces_end(); ++f_it)
-		_trimesh.property(pre_dp, *f_it) = TriHEH(-1);
+	for(auto fhi : trimesh_.faces())
+		if(_chart_index[fhi.idx()] == id_min)
+			_chart_index[fhi.idx()] = id_max;
 
-	std::queue<TriFH> que;
-	std::vector<bool> fh_visited(_trimesh.n_faces(), false);
-	que.push(_fh0);
-	fh_visited[_fh0.idx()]=true;
-	bool found = false;
-
-	while(!que.empty() && !found)
-	{
-		auto fh = que.front();
-		que.pop();
-
-		for(auto fhe_it = _trimesh.fh_ccwbegin(fh); fhe_it.is_valid(); ++fhe_it)
-		{
-			auto he_opp = _trimesh.opposite_halfedge_handle(*fhe_it);
-			auto fh_opp = _trimesh.face_handle(he_opp);
-
-			if(!fh_visited[fh_opp.idx()])
-			{
-				_trimesh.property(pre_dp, fh_opp) = *fhe_it;
-				fh_visited[fh_opp.idx()] = true;
-
-				if(fh_opp == _fh1)
-				{
-					found = true;
-					break;
-				}
-
-				que.push(fh_opp);
-			}
-		}
-	}
-
-
-	//find the path
-	std::vector<TriHEH> rhes;
-	std::queue<TriFH> que_dp;
-	que_dp.push(_fh1);
-
-	while(!que_dp.empty())
-	{
-		auto fh = que_dp.front();
-		que_dp.pop();
-
-		auto he = _trimesh.property(pre_dp, fh);
-
-		if(he.is_valid())
-		{
-			rhes.push_back(he);
-			que_dp.push(_trimesh.face_handle(he));
-		}
-	}
-
-	for(auto iter = rhes.rbegin(); iter != rhes.rend(); ++iter)
-		_tri_hes.push_back(*iter);
+	for(auto fhi : trimesh_.faces())
+		if(_chart_index[fhi.idx()] < id_min)
+			_chart_index[fhi.idx()] = _chart_index[fhi.idx()] + 1;
 }
+
 
 }

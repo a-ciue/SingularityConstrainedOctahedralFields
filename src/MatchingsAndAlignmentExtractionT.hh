@@ -95,7 +95,7 @@ private:
     void constrained_chart_mergingT();
     void tangent_continuity(const EH _eh, const EH _eh_next);
     void interior_singular_edge_closing(const EH _eh);
-    void shortest_dual_path_from_cell_to_edge_restricting_to_the_vertex(const CH _ch, const EH _eh, std::vector<HFH>& _hfs)const;
+    void shortest_dual_path_from_cell_to_edge_restricting_to_the_vertex(const CH _ch, const EH _eh, std::vector<HFH>& _hfs, bool _block_free = false)const;
     bool cell_has_edge(const CH _ch, const EH _eh)const;
     VH common_vertex_handle(const EH _eh0, const EH _eh1)const;
     HEH common_halfedge_handle(const HFH _hf0, const HFH _hf1)const;
@@ -163,26 +163,24 @@ private:
     void update_chart_index_mapping(int _id0, int _id1);
 
     //update component property
-    void update_interior_graph_component_property();
-    void update_boundary_graph_component_property();
+    void update_interior_graph_component_property(const int _id0, const int _id1);
+    void update_boundary_graph_component_property(const int _id0, const int _id1);
 
 
     //used for additional constraints
     //connect interior graph components
     void connect_interior_graph_components();
-    void connect_via_dual_path(const std::vector<HFH>& _dpath, int _axis1, int _axis2);
-    void find_closest_parallel_singular_edges(const EH _eh0, const int _comp, EH &_eh1)const;
+    void connect_via_dual_path(const std::vector<HFH>& _dpath, const int _axis1, const int _axis2);
+	int additional_constraint_type(const std::vector<HFH>& _dpath, std::vector<HEH>& _hes);
     void find_independent_unknown_halfface_transition(const std::vector<HFH>& _dpath, int& _pos);
-    void shortest_dual_path_from_cell_to_boundary(const CH _ch, std::vector<HFH>& _dpath)const;
-    void shortest_dual_path_between_cells(const CH _ch0, const CH _ch1, std::vector<HFH>& _dpath)const;
 
-    //for high genus models whose singularity graphs do not form a circle, e.g. kitten, add additional constraints to avoid twist
-    void add_constraint_to_avoid_twist();
 
     //connect boundary graph components
     void connect_boundary_graph_components(std::vector<int>& _chart_index);
-    void shortest_dual_path_between_faces_tri(TriMesh& _trimesh, const TriFH _fh0, const TriFH _fh1,
-    		std::vector<TriHEH>& _tri_hes)const;
+    void get_dual_paths_on_trimesh(std::vector<std::vector<TriHEH> >& _tri_dps);
+    void get_singular_halfedge_in_halfface(const HFH _hf, HEH& _he);
+	void update_boundary_chart_index(std::vector<int>& _chart_index, const TriHEH _he0, const TriHEH _he1)const;
+
 
 private:
 	TetMesh& mesh_;
