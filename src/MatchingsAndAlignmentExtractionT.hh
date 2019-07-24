@@ -142,7 +142,7 @@ private:
     bool get_second_constraints_on_patch(const HFP<int>& _patch_id, const EP<bool>& _edge_block, const std::vector<HFH>& _hfs,
     		const std::vector<std::vector<int> >& _v_trans, HFH& _hf_breach, int& _unique_trans)const;
     void halffaces_between_two_halffaces(const HEH _he, const HFH _hf0, const HFH _hf1, std::vector<HFH>& _hfs)const;
-    void	shortest_dual_path_from_boundary_to_halfface_on_patch(const HFH _hf, HFH& _hf_tb, const HFP<int>& _patch_id,
+    void shortest_dual_path_from_boundary_to_halfface_on_patch(const HFH _hf, HFH& _hf_tb, const HFP<int>& _patch_id,
     		const EP<bool>& _edge_block, std::vector<HFH>& _hfs)const;
 
     //apply exhaustive search if necessary
@@ -152,7 +152,6 @@ private:
      void get_indexes(const int _decimal, std::vector<int>& _indexes)const;
      void update_open_edge_property_on_boundary(EP<bool>& _ioe_prop)const;
 
-    int axis_after_transition(const int _axis_start, const int _transition)const;
     int the_third_axis(const int _axis0, const int _axis1) const;
     bool are_halfedges_the_same_direction(const HEH _he0, const HEH _he1)const;
     double distance(const VH _vh0, const VH _vh1)const;

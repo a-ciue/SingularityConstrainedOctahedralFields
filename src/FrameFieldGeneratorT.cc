@@ -232,7 +232,7 @@ generate_frame_field()
   }
     std::cerr << "\n#####Field Generation time:    " <<time.stop()/1000<<" s";
 
-  save_frames("test.frames");
+//  save_frames("test.frames");
 }
 
 
@@ -253,7 +253,7 @@ solve(const std::vector<bool>& face_conquered, std::vector<double>& quaternions)
 
 	  // 3. setup smoothness energy
 	  for(FIt f_it = mesh_.f_iter(); f_it.valid(); ++f_it)
-	    if(!mesh_.is_boundary(*f_it) && face_conquered[*f_it])
+	    if(!mesh_.is_boundary(*f_it) && face_conquered[(*f_it).idx()])
 	    {
 	      // get halffaces and cells
 	      HFH hfh0 = mesh_.halfface_handle(*f_it, 0);
@@ -411,7 +411,6 @@ init_consistent_transition_quaternions(std::vector<bool>& _face_conquered)
     HFH hfh_opp = mesh_.opposite_halfface_handle(hfh);
     if(!mesh_.is_boundary(hfh_opp))
     {
-      CH  ch     = mesh_.incident_cell(hfh);
       CH  ch_opp = mesh_.incident_cell(hfh_opp);
 
       if(!cell_visited[ch_opp.idx()])
@@ -419,7 +418,7 @@ init_consistent_transition_quaternions(std::vector<bool>& _face_conquered)
         // mark as visited
         cell_visited[ch_opp.idx()] = true;
         // mark face conquered
-        _face_conquered[mesh_.face_handle(hfh)] = true;
+        _face_conquered[mesh_.face_handle(hfh).idx()] = true;
         // push halffaces to neighbors
         for(unsigned int i=0; i<mesh_.cell(ch_opp).halffaces().size(); ++i)
           cq.push(mesh_.cell(ch_opp).halffaces()[i]);
@@ -1733,15 +1732,12 @@ void
 FrameFieldGeneratorT<TetMeshT>::
 save_frames(const std::string _filename) const
 {
-  // quaternion property
-  OpenVolumeMesh::CellPropertyT< Eigen::Quaterniond > quaternion_prop = mesh_.template request_cell_property< Eigen::Quaterniond >("CellQuaternion");
-
   std::ofstream f_write(_filename);
 
   for(CIt c_it = mesh_.c_iter(); c_it.valid(); ++c_it)
   {
     // get quaternion
-    Eigen::Quaterniond q = quaternion_prop[*c_it];
+    Quaternion q = quaternion_cprop_[*c_it];
     q.normalize();
     if(!std::isfinite(q.squaredNorm()))
       q = Eigen::Quaterniond(1,0,0,0);

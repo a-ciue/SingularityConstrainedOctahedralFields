@@ -191,7 +191,7 @@ add_corner_constraints(std::map<EH, std::vector<int> >& _eh_to_corners)
 	mesh_.set_persistent(corner_vt_prop, false);
 	mesh_.set_persistent(dp_prop, false);
 
-	unsigned int n_corner = corner_vt_prop[0].size()/4;
+	unsigned int n_corner = corner_vt_prop[OVM::MeshHandle(0)].size()/4;
 	if(n_corner == 0)
 		return;
 	std::cerr<<"\nInitialize Corner Constraints...";
@@ -201,9 +201,9 @@ add_corner_constraints(std::map<EH, std::vector<int> >& _eh_to_corners)
 		std::shared_ptr<CornerT<TetMesh> > corner(new CornerT<TetMesh>());
 		for(int j=0; j<3; ++j)
 		{
-			HEH hej = mesh_.halfedge(corner_vt_prop[0][4*i], corner_vt_prop[0][4*i+j+1]);
+			HEH hej = mesh_.halfedge(corner_vt_prop[OVM::MeshHandle(0)][4*i], corner_vt_prop[OVM::MeshHandle(0)][4*i+j+1]);
 			corner.get()->set_ith_halfedge(j, hej);
-			corner.get()->set_ith_dual_path(j, dp_prop[0][3*i+j]);
+			corner.get()->set_ith_dual_path(j, dp_prop[OVM::MeshHandle(0)][3*i+j]);
 		}
 
 		v_corners_.push_back(corner);
@@ -215,7 +215,8 @@ add_corner_constraints(std::map<EH, std::vector<int> >& _eh_to_corners)
 			ehs.push_back(mesh_.edge_handle(i.get()->halfedge(j)));
 
 	std::sort(ehs.begin(), ehs.end());
-	std::unique(ehs.begin(), ehs.end());
+	auto last = std::unique(ehs.begin(), ehs.end());
+	ehs.erase(last, ehs.end());
 	for(auto ehi : ehs)
 	{
 		std::vector<int> vec;
@@ -273,22 +274,22 @@ add_tangent_continuity_constraints()
 	mesh_.set_persistent(tc_vt_prop, false);
 	mesh_.set_persistent(tc_dp_prop, false);
 
-	unsigned int n_tc = tc_vt_prop[0].size()/3;
+	unsigned int n_tc = tc_vt_prop[OVM::MeshHandle(0)].size()/3;
 	if(n_tc == 0)
 		return;
 	std::cerr<<"\nInitialize Tangent Continuity Constraints of Singular Nodes...";
 
 	for(unsigned int i=0; i<n_tc; ++i)
 	{
-		if(node_type_[tc_vt_prop[0][3*i]] == 4)
+		if(node_type_[tc_vt_prop[OVM::MeshHandle(0)][3*i]] == 4)
 		{
 			std::shared_ptr<TangentContinuityT<TetMesh> > tc(new TangentContinuityT<TetMesh>());
 			for(int j=0; j<2; ++j)
 			{
-				HEH hej = mesh_.halfedge(tc_vt_prop[0][3*i], tc_vt_prop[0][3*i+j+1]);
+				HEH hej = mesh_.halfedge(tc_vt_prop[OVM::MeshHandle(0)][3*i], tc_vt_prop[OVM::MeshHandle(0)][3*i+j+1]);
 				tc.get()->set_ith_halfedge(j, hej);
 			}
-			tc.get()->set_dual_path(tc_dp_prop[0][i]);
+			tc.get()->set_dual_path(tc_dp_prop[OVM::MeshHandle(0)][i]);
 
 			v_tc_.push_back(tc);
 		}
@@ -332,14 +333,14 @@ constrained_chart_mergingB()
 	mesh_.set_persistent(sector_vt_prop, false);
 	mesh_.set_persistent(sector_angle_prop, false);
 
-	unsigned int n_sector = sector_vt_prop[0].size()/3;
+	unsigned int n_sector = sector_vt_prop[OVM::MeshHandle(0)].size()/3;
 	for(unsigned int i=0; i<n_sector; ++i)
 	{
 		std::vector<TriVH> tri_vhs;
 		for(int j=0; j<3; ++j)
-			tri_vhs.push_back(vh_to_trivh_[sector_vt_prop[0][3*i+j]]);
+			tri_vhs.push_back(vh_to_trivh_[sector_vt_prop[OVM::MeshHandle(0)][3*i+j]]);
 
-		add_irregular_sector_constraints(tri_vhs, sector_angle_prop[0][i]);
+		add_irregular_sector_constraints(tri_vhs, sector_angle_prop[OVM::MeshHandle(0)][i]);
 	}
 }
 
@@ -1923,24 +1924,24 @@ get_first_constraints_on_patch(const HFP<int>& _patch_id, const std::vector<VH>&
 						int axis0=-1, axis1=-1, axis2=-1;
 						if(pos == 0)
 						{
-							axis0 = axis_after_transition(0, trans_prop_[dpaths[1][dpaths[1].size()-1]]);
-							axis1 = axis_after_transition(0, trans_prop_[dpaths[2][dpaths[2].size()-1]]);
+							axis0 = tq_.axis_after_transition(0, trans_prop_[dpaths[1][dpaths[1].size()-1]]);
+							axis1 = tq_.axis_after_transition(0, trans_prop_[dpaths[2][dpaths[2].size()-1]]);
 							axis2 = the_third_axis(axis0, axis1);
 						}else if(pos == 1)
 						{
-							axis0 = axis_after_transition(0, trans_prop_[dpaths[2][dpaths[2].size()-1]]);
-							axis1 = axis_after_transition(0, trans_prop_[dpaths[0][dpaths[0].size()-1]]);
+							axis0 = tq_.axis_after_transition(0, trans_prop_[dpaths[2][dpaths[2].size()-1]]);
+							axis1 = tq_.axis_after_transition(0, trans_prop_[dpaths[0][dpaths[0].size()-1]]);
 							axis2 = the_third_axis(axis0, axis1);
 						}else if(pos == 2)
 						{
-							axis0 = axis_after_transition(0, trans_prop_[dpaths[0][dpaths[0].size()-1]]);
-							axis1 = axis_after_transition(0, trans_prop_[dpaths[1][dpaths[1].size()-1]]);
+							axis0 = tq_.axis_after_transition(0, trans_prop_[dpaths[0][dpaths[0].size()-1]]);
+							axis1 = tq_.axis_after_transition(0, trans_prop_[dpaths[1][dpaths[1].size()-1]]);
 							axis2 = the_third_axis(axis0, axis1);
 						}
 
 						std::vector<int> trans;
 						for(int ii=0; ii<24; ++ii)
-							if(axis_after_transition(0, ii) == axis2)
+							if(tq_.axis_after_transition(0, ii) == axis2)
 								trans.push_back(ii);
 
 						if(_patch_id[hf_uk])
@@ -2022,7 +2023,7 @@ get_first_constraints_on_patch(const HFP<int>& _patch_id, const std::vector<VH>&
 
 			std::vector<int> trans;
 			for(int ii=0; ii<24; ++ii)
-				if(axis_after_transition(axis, ii) == 0)
+				if(tq_.axis_after_transition(axis, ii) == 0)
 				{
 					int idx_tmp = tq_.mult_transitions_idx(tq_.inverse_transition_idx(idx1), tq_.mult_transitions_idx(ii, tq_.inverse_transition_idx(idx0)));
 					trans.push_back(idx_tmp);
@@ -2096,7 +2097,7 @@ get_first_constraints_on_patch(const HFP<int>& _patch_id, const std::vector<VH>&
 
 			std::vector<int> trans;
 			for(int ii=0; ii<24; ++ii)
-				if(axis_after_transition(axis, ii) == 0)
+				if(tq_.axis_after_transition(axis, ii) == 0)
 				{
 					int idx_tmp = tq_.mult_transitions_idx(tq_.inverse_transition_idx(idx1), tq_.mult_transitions_idx(ii, tq_.inverse_transition_idx(idx0)));
 					trans.push_back(idx_tmp);
@@ -2172,7 +2173,7 @@ get_second_constraints_on_patch(const HFP<int>& _patch_id, const EP<bool>& _edge
 				idx = tq_.mult_transitions_idx(trans_prop_[hfi], idx);
 			}
 		}
-		int axis1 = axis_after_transition(0, idx);
+		int axis1 = tq_.axis_after_transition(0, idx);
 
 		//express the other axis in the chart incident to hf_breach
 		idx = 0;
@@ -2202,12 +2203,12 @@ get_second_constraints_on_patch(const HFP<int>& _patch_id, const EP<bool>& _edge
 				idx = tq_.mult_transitions_idx(trans_prop_[hfi], idx);
 			}
 		}
-		int axis0 = axis_after_transition(0, idx);
+		int axis0 = tq_.axis_after_transition(0, idx);
 
 		//try to get unique transition
 		std::vector<int> unique_trans;
 		for(int ii=0; ii<4; ++ii)
-			if(axis_after_transition(axis0, _v_trans[i][ii]) == axis1)
+			if(tq_.axis_after_transition(axis0, _v_trans[i][ii]) == axis1)
 				unique_trans.push_back(_v_trans[i][ii]);
 
 		if(unique_trans.size() == 1)
@@ -2411,7 +2412,7 @@ get_keys(std::vector<HFH>& _hfs, std::vector<std::vector<int> >& _v_trans)
 			//get the four possible transitions that maps axis_0 to axis_0
 			std::vector<int> trans;
 			for(int i=0; i<24; ++i)
-				if(axis_after_transition(0, i) == 0)
+				if(tq_.axis_after_transition(0, i) == 0)
 					trans.push_back(i);
 
 			int idx_0 = 0,
@@ -2685,46 +2686,6 @@ regular_edge_closing(const HEH _he, const HFH _hf)
 }
 
 
-template <class MeshT1, class MeshT2>
-int
-MatchingsAndAlignmentExtractionT<MeshT1, MeshT2>::
-axis_after_transition(const int _axis_start, const int _transition)const
-{
-	if(_transition == -1 || _axis_start > 6 || _axis_start < 0)
-		std::cerr<<"\nERROR: input transition or axis is invalid! Axis start: "<<_axis_start<<" transition: "<<_transition;
-
-	auto m1 = tq_.transition_matrix_int(_transition);
-
-	int axes_mapped[3] = {0,0,0};
-	for(int j=0; j<3;++j)
-		for(int i=0;i<3;++i)
-		{
-			if(m1(i,j) == 1)
-			{
-				axes_mapped[j] = 2*i;
-				break;
-			}
-			if(m1(i,j) == -1)
-			{
-				axes_mapped[j] = 2*i+1;
-				break;
-			}
-		}
-
-
-	int pos = _axis_start/2;
-	int res = _axis_start%2;
-	int axis = 0;
-
-	if(res == 0)
-		axis = axes_mapped[pos];
-	else if(res == 1)
-			axis = (axes_mapped[pos] %2 == 0) ? axes_mapped[pos] + 1 : axes_mapped[pos] - 1;
-
-	return axis;
-}
-
-
 //get the third axis in the right hand coordinate system
 template <class MeshT1, class MeshT2>
 int
@@ -2871,7 +2832,7 @@ check_transitions()
 				else if(axes_prop_[ch][he0] != -1 && axes_prop_[ch][he1] == -1)
 					axis = axes_prop_[ch][he0];
 				else if(axes_prop_[ch][he0] == -1 && axes_prop_[ch][he1] != -1)
-					axis = (axes_prop_[ch][he1]%2 == 0) ? axes_prop_[ch][he1]+1 : axes_prop_[ch][he1]-1;
+					axis = (axes_prop_[ch][he1] % 2 == 0) ? axes_prop_[ch][he1] + 1 : axes_prop_[ch][he1] - 1;
 				else
 				{
 					valance_[ehi] = 4;
@@ -2879,17 +2840,19 @@ check_transitions()
 							<<ehi<<" "<<axes_prop_[ch][he0]<<" " <<axes_prop_[ch][he1];
 				}
 
+
 				if(axis != -1)
 				{
+					int valence = valance_[ehi];
 					if(axis == (idx-4))
 						valance_[ehi] = -1;
 					else if(std::abs(axis - (idx-4)) == 1)
 						valance_[ehi] = 1;
 					else
-					{
-						std::cerr<<"\nError: axis does not agree with the rotational axis! Eh: "<<ehi<<", axis: "<<axis<<", rotational axis: "<<idx;
 						valance_[ehi] = 4;
-					}
+
+					if(valence != valance_[ehi])
+						std::cerr<<"\nError: singular edge type is inconsistent with the ccw_transition! Eh: "<<ehi<<", axis: "<<axis<<", ccw_transition: "<<idx;
 				}
 			}else
 				valance_[ehi] = 0;
@@ -2913,7 +2876,7 @@ check_transitions()
 
 			hf_start = mesh_.opposite_halfface_handle(*mesh_.hehf_iter(he0));
 			int n0 = normal_prop_[hf_start];
-			int n0_t = axis_after_transition(n0, idx);
+			int n0_t = tq_.axis_after_transition(n0, idx);
 
 			int n1 = normal_prop_[hf_end];
 
@@ -3047,10 +3010,10 @@ connect_interior_graph_components()
 
 	MP<std::vector<std::vector<HFH> > > itr_dp_prop = mesh_.template request_mesh_property<std::vector<std::vector<HFH> > >(
 			"interior_dual_paths");
-	for(size_t i=0; i<itr_dp_prop[0].size(); ++i)
+	for(size_t i=0; i<itr_dp_prop[OVM::MeshHandle(0)].size(); ++i)
 	{
 		std::vector<HEH> hes;
-		int ac_type = additional_constraint_type(itr_dp_prop[0][i], hes);
+		int ac_type = additional_constraint_type(itr_dp_prop[OVM::MeshHandle(0)][i], hes);
 		if(ac_type == 4)
 		{
 			std::cerr<<"\nError: invalid additional constraints!";
@@ -3058,7 +3021,7 @@ connect_interior_graph_components()
 		}
 		if(ac_type == 0)
 		{
-			connect_via_dual_path(itr_dp_prop[0][i], 2, 0);
+			connect_via_dual_path(itr_dp_prop[OVM::MeshHandle(0)][i], 2, 0);
 			continue;
 		}else if(ac_type == 1)
 		{
@@ -3069,7 +3032,7 @@ connect_interior_graph_components()
 			if((vec0|vec1) < 0.0)
 				axis_2 = 1;
 
-			connect_via_dual_path(itr_dp_prop[0][i], 0, axis_2);
+			connect_via_dual_path(itr_dp_prop[OVM::MeshHandle(0)][i], 0, axis_2);
 		}else if(ac_type == 2)
 		{
 			int axis_2 = 2;
@@ -3079,7 +3042,7 @@ connect_interior_graph_components()
 			if((vec0|vec1) < 0.0)
 				axis_2 = 3;
 
-			connect_via_dual_path(itr_dp_prop[0][i], 0, axis_2);
+			connect_via_dual_path(itr_dp_prop[OVM::MeshHandle(0)][i], 0, axis_2);
 		}else if(ac_type == 3)
 		{
 			int axis_2 = 0;
@@ -3089,7 +3052,7 @@ connect_interior_graph_components()
 			if((vec0|vec1) < 0.0)
 				axis_2 = 1;
 
-			connect_via_dual_path(itr_dp_prop[0][i], 2, axis_2);
+			connect_via_dual_path(itr_dp_prop[OVM::MeshHandle(0)][i], 2, axis_2);
 		}
 
 		update_interior_graph_component_property(sg_comp_i_[mesh_.edge_handle(hes[0])], sg_comp_i_[mesh_.edge_handle(hes[1])]);
@@ -3187,7 +3150,7 @@ connect_via_dual_path(const std::vector<HFH>& _dpath, const int _axis1, const in
 	//choose one transition for the unknown
 	int trans = 0;
 	for(int i=0; i<24; ++i)
-		if(axis_after_transition(_axis2, i) == _axis1)//x map to +x or -x
+		if(tq_.axis_after_transition(_axis2, i) == _axis1)//x map to +x or -x
 		{
 			trans = i;
 			break;
@@ -3276,12 +3239,12 @@ connect_boundary_graph_components(std::vector<int>& _chart_index)
 	{
 		//get singular halfedges
 		HEH sg_he0, sg_he1;
-		get_singular_halfedge_in_halfface(bdy_dp_prop[0][i][0], sg_he0);
-		get_singular_halfedge_in_halfface(bdy_dp_prop[0][i][bdy_dp_prop[0][i].size()-1], sg_he1);
+		get_singular_halfedge_in_halfface(bdy_dp_prop[OVM::MeshHandle(0)][i][0], sg_he0);
+		get_singular_halfedge_in_halfface(bdy_dp_prop[OVM::MeshHandle(0)][i][bdy_dp_prop[OVM::MeshHandle(0)][i].size()-1], sg_he1);
 
 		std::vector<int> v_trans;
 		for(int i=0; i<24; ++i)
-			if(axis_after_transition(0, i) == 0)//x map to x
+			if(tq_.axis_after_transition(0, i) == 0)//x map to x
 				v_trans.push_back(i);
 
 		//get transition
@@ -3295,7 +3258,7 @@ connect_boundary_graph_components(std::vector<int>& _chart_index)
 			axis_2 = 3;
 		int trans = 0;
 		for(auto i : v_trans)
-			if(axis_after_transition(axis_2, i) == 2)//y map to +y or -y
+			if(tq_.axis_after_transition(axis_2, i) == 2)//y map to +y or -y
 			{
 				trans = i;
 				break;
@@ -3353,7 +3316,7 @@ get_dual_paths_on_trimesh(std::vector<std::vector<TriHEH> >& _tri_dps)
 	MP<std::vector<std::vector<HFH> > > bdy_dp_prop = mesh_.template request_mesh_property<std::vector<std::vector<HFH> > >(
 			"boundary_dual_paths");
 
-	for(auto hfs : bdy_dp_prop[0])
+	for(auto hfs : bdy_dp_prop[OVM::MeshHandle(0)])
 	{
 		std::vector<TriHEH> tri_hes;
 		for(size_t i=0; i<hfs.size()-1; ++i)

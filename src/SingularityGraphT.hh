@@ -5,8 +5,8 @@
  *      Author: hliu
  */
 
-#ifndef PLUGIN_SMOOTHFRAMEFIELDOVM_SINGULARITYGRAPHT_HH
-#define PLUGIN_SMOOTHFRAMEFIELDOVM_SINGULARITYGRAPHT_HH
+#ifndef SINGULARITYGRAPHT_HH
+#define SINGULARITYGRAPHT_HH
 
 #include "Typedefs.hh"
 
@@ -23,7 +23,7 @@ public:
 
     SingularityGraphT(Mesh& _mesh)
     : mesh_(_mesh),
-	  valance_(mesh_.template request_edge_property<int>("edge_valance")),
+	  valence_(mesh_.template request_edge_property<int>("edge_valance")),
 	  label_(mesh_.template request_edge_property<int>("singularity_line_label")),
 	  node_type_(mesh_.template request_vertex_property<int>("singular_node")),
 	  is_singular_vt_(mesh_.template request_vertex_property<bool>("is_singular_vertex")),
@@ -33,25 +33,42 @@ public:
 	  arc_type_(mesh_.template request_edge_property<int>("singular_arc_type"))
     {
     		update_label_property();
+    		mesh_.set_persistent(arc_type_, true);
     }
     ~SingularityGraphT(){}
 
 public:
-    void set_singularity_graph_component_property();
-    void classify_singular_arc_type();
+	void set_singularity_graph_component_property();
+	void classify_singular_arc_type();
 
-    void update_label_property();
-    void update_node_type_property();
-    void update_singular_vertex_property();
+	void update_label_property();
+	void update_node_type_property();
+	void update_singular_vertex_property();
+	void update_valence_property();
 
-    std::vector<EH> get_singular_edges_of_label(const int _label) const;
-    std::vector<VH> get_singular_vertices_of_label(const int _label) const;
-    int max_label() const {return max_label_;};
+	std::vector<EH> get_singular_edges_of_label(const int _label) const;
+	std::vector<VH> get_singular_vertices_of_label(const int _label) const;
 
-    void sort_vertices_on_curve(const int _label, std::vector<VH>& _vhs) const;
-    void sort_edges_on_curve(const int _label, std::vector<EH>& _ehs) const;
+//	const std::vector<EH>& get_singular_edges_of_label(const int _label) const;
+//	const std::vector<VH>& get_singular_vertices_of_label(const int _label) const;
+
+	int max_label() {max_label_ = *std::max_element(label_.begin(), label_.end()); return max_label_;};
+
+	void sort_vertices_on_curve(const int _label, std::vector<VH>& _vhs) const;
+	void sort_edges_on_curve(const int _label, std::vector<EH>& _ehs) const;
+    void sort_halfedges_on_curve(const int _label, std::vector<HEH>& _hes) const;
 
     void measure_the_shortest_curve_length() const;
+
+	int arc_type(const int _label) const{ return arc_type_[get_singular_edges_of_label(_label)[0]]; }
+	int arc_type(const EH _eh) const {return arc_type_[_eh];}
+
+	int valence(const int _label) const { return valence_[get_singular_edges_of_label(_label)[0]]; }
+	int valence(const EH _eh) const { return valence_[_eh]; }
+
+	std::vector<VH> adjacent_singular_nodes(const VH _vh) const;
+
+	VH end_singular_node_on_curve(const int _label, const VH _start_node) const;
 
 private:
     bool is_end_vertex(const VH _vh) const;
@@ -59,7 +76,7 @@ private:
 
 private:
 	Mesh &mesh_;
-    EP<int> valance_;
+    EP<int> valence_;
     EP<int> label_;
     VP<int> node_type_;
 	VP<bool> is_singular_vt_;
@@ -90,4 +107,4 @@ private:
 #endif
 //=============================================================================
 
-#endif /* PLUGIN_SMOOTHFRAMEFIELDOVM_SINGULARITYGRAPHT_HH */
+#endif /* SINGULARITYGRAPHT_HH */

@@ -71,6 +71,8 @@ public:
   // check quaternions
   void check_quaternions() const;
 
+  int axis_after_transition(const int _axis_start, const int _transition) const;
+
 private:
 
   // initialize vector of transitions

@@ -422,6 +422,46 @@ test_round_to_2d_possibilities()
 }
 
 
+//-----------------------------------------------------------------------------
+
+
+int TransitionQuaternion::axis_after_transition(const int _axis_start, const int _transition) const
+{
+      if(_transition == -1 || _axis_start > 6 || _axis_start < 0)
+        std::cerr<<"\nERROR: input transition or axis is invalid! Axis start: "<<_axis_start<<" transition: "<<_transition;
+
+      Matrix m1 = transition_matrix_int(_transition);
+
+      int axes_mapped[3] = {0,0,0};
+      for(int j=0; j<3;++j)
+        for(int i=0;i<3;++i)
+        {
+          if(m1(i,j) == 1)
+          {
+            axes_mapped[j] = 2*i;
+            break;
+          }
+          if(m1(i,j) == -1)
+          {
+            axes_mapped[j] = 2*i+1;
+            break;
+          }
+        }
+
+
+      int pos = _axis_start/2;
+      int res = _axis_start%2;
+      int axis = 0;
+
+      if(res == 0)
+        axis = axes_mapped[pos];
+      else if(res == 1)
+        axis = (axes_mapped[pos] %2 == 0) ? axes_mapped[pos] + 1 : axes_mapped[pos] - 1;
+
+      return axis;
+}
+
+
 //=============================================================================
 } // namespace Eigen
 //=============================================================================
