@@ -1,6 +1,7 @@
 libSCOF uses the cmake build system.
 
-libSCOF depends on OpenVolumeMesh 2.0, which is available on www.openvolumemesh.org.
+# Dependencies
+The dependencies of libSCOF are OpenVolumeMesh (www.openvolumemesh.org), OpenMesh(www.openmesh.org), GMM(http://getfem.org/gmm.html) and Eigen (http://eigen.tuxfamily.org). Cholmod is optional.
 
 In order to build libSCOF, you can perform the following steps:
 
