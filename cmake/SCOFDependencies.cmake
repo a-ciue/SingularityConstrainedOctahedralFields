@@ -24,7 +24,7 @@ endif()
 # Eigen
 find_package(EIGEN3)
 if(NOT EIGEN3_FOUND AND "${CMAKE_PROJECT_NAME}" STREQUAL "SCOF")
-	scof_download_eigen()
+    scof_download_eigen()
 endif()
 
 

@@ -1,7 +1,3 @@
- #
-# Copyright 2013 Computer Graphics Group, RWTH Aachen University
-# Authors:
-#
 # This file is part of SCOF.
 #
 # SCOF is free software: you can redistribute it and/or modify it under
