@@ -1,0 +1,5 @@
+get_filename_component(SCOF_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
+
+if(NOT TARGET SCOF::SCOF)
+    include("${SCOF_CMAKE_DIR}/SCOFTargets.cmake")
+endif()

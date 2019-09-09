@@ -18,71 +18,198 @@
 # along with SCOF.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-cmake_minimum_required (VERSION 2.6)
+cmake_minimum_required (VERSION 3.9)
 
-# Only set project name if not build from within another project.
-if("${PROJECT_NAME}" STREQUAL "")
-    project (SCOF)
+list (APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+
+project (SCOF
+    VERSION 0.0.1
+    LANGUAGES C CXX
+    )
+
+set(CMAKE_FIND_PACKAGE_NO_PACKAGE_REGISTRY ON)
+
+option(BUILD_SHARED_LIBS "Build shared library (*.dll, *.so, *.dylib) instead of static library (*.a, *.lib)" ON)
+
+if (CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
+    if (WIN32)
+        set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/Build")
+    else ()
+        set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/Build/bin")
+    endif ()
+
+    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/Build/lib")
+    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/Build/lib")
+
+    set(CMAKE_CXX_STANDARD 14)
 endif()
 
-list (APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
+set(SCOF_EXTERNAL "${CMAKE_CURRENT_SOURCE_DIR}/external")
 
-add_definitions(-DINCLUDE_TEMPLATES)
-
-set (SOURCES "")
-set (INCLUDE_DIRS "")
-set (LIBRARIES "")
-set (LIBRARY_DIRS "")
-
-
-file(GLOB SRCS "${CMAKE_CURRENT_LIST_DIR}/src/*.cc" "${CMAKE_CURRENT_LIST_DIR}/src/*.c")
-
-
-find_package (OpenVolumeMesh REQUIRED)
-find_package (OpenMesh REQUIRED)
-find_package (EIGEN3 REQUIRED)
-find_package (GMM REQUIRED)
-find_package (CHOLMOD)
-
-#enable suitesparse
-if(CHOLMOD_INCLUDES)
-	add_definitions(-DENABLE_SUITESPARSE)
-	list (APPEND EIGEN3_INCLUDE_DIR ${CHOLMOD_INCLUDES})
-	list (APPEND LIBRARIES ${CHOLMOD_LIBRARIES})
-endif(CHOLMOD_INCLUDES)
-
-list (APPEND SOURCES ${SRCS})
-list (APPEND INCLUDE_DIRS ${OPENVOLUMEMESH_INCLUDE_DIR}
-	${OPENMESH_INCLUDE_DIRS} 
-	${EIGEN3_INCLUDE_DIR} 
-	${GMM_INCLUDE_DIR})
-list (APPEND LIBRARY_DIRS ${OPENVOLUMEMESH_LIBRARY_DIR})
-list (APPEND LIBRARIES ${OPENVOLUMEMESH_LIBRARY}
-	${OPENMESH_LIBRARIES})
-
-
-include_directories (${INCLUDE_DIRS})
-
-link_directories (${CMAKE_BINARY_DIR} ${LIBRARY_DIRS})
-
-add_library (SCOF SHARED ${SOURCES})
-add_library (SCOFStatic STATIC ${SOURCES})
-
-target_link_libraries (SCOF ${LIBRARIES})
-target_link_libraries (SCOFStatic ${LIBRARIES})
-
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -O3 -Wall -Wextra")
-#
-# Fake successful finder run if compiling as a dependent project.
-#
-if(NOT "${PROJECT_NAME}" MATCHES "SCOF")
-    set (SCOF_FOUND true PARENT_SCOPE)
-    set (SCOF_LIBRARIES SCOF PARENT_SCOPE)
-    set (SCOF_LIBRARY SCOF PARENT_SCOPE)
-    set (SCOF_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/src/" PARENT_SCOPE)
-    set (SCOF_LIBRARY_DIR "${CMAKE_CURRENT_BINARY_DIR}" CACHE PATH "The directory where the SCOF libraries can be found.")
+if(NOT CMAKE_BUILD_TYPE)
+    message(STATUS "No build type selected, default to Release")
+    set(CMAKE_BUILD_TYPE "Release")
 endif()
 
-if("${PROJECT_NAME}" MATCHES "SCOF")
+set (ACG_COMMON_DO_NOT_COPY_POST_BUILD TRUE)
+include (SCOFDependencies)
+
+get_target_property(INC_DIRS OpenMeshCore INCLUDE_DIRECTORIES)
+message("Target openmesh include dirs: ${INC_DIRS}")
+
+# add library
+add_library (SCOF
+            src/AxisAlignment.hh
+            src/FrameFieldGeneratorT.hh				
+            src/SingularityConstrainedOctahedralField.cc	
+            src/SingularityGraphT.hh				
+            src/TransitionQuaternionEigen.cc 
+            src/CornerT.hh					
+            src/MatchingsAndAlignmentExtractionT.cc		
+            src/SingularityConstrainedOctahedralField.hh	
+            src/StopWatch.hh					
+            src/TransitionQuaternionEigen.hh 
+            src/FrameFieldGeneratorT.cc			
+            src/MatchingsAndAlignmentExtractionT.hh	
+            src/SingularityGraphT.cc				
+            src/TangentContinuityT.hh				
+            src/Typedefs.hh
+)
+
+add_library (SCOF::SCOF ALIAS SCOF)
+
+target_compile_options(SCOF PUBLIC
+    "$<$<CXX_COMPILER_ID:MSVC>:/bigobj>"
+    # cmake by default adds /W3, that's too much for us:
+    "$<$<CXX_COMPILER_ID:MSVC>:/W1>"
+    # disable MSVC inline warnings that are enabled with /Ob2, which is in the default cmake release cxxflags:
+    "$<$<CXX_COMPILER_ID:MSVC>:/wd4710>"
+    "$<$<CXX_COMPILER_ID:MSVC>:/wd4711>"
+
+    "$<$<CXX_COMPILER_ID:MSVC>:/wd4514>"
+    "$<$<CXX_COMPILER_ID:MSVC>:/wd4571>"
+    "$<$<CXX_COMPILER_ID:MSVC>:/wd5045>"
+    "$<$<CXX_COMPILER_ID:MSVC>:/wd5024>"
+    "$<$<CXX_COMPILER_ID:MSVC>:/wd5025>"
+    "$<$<CXX_COMPILER_ID:MSVC>:/wd5026>"
+    "$<$<CXX_COMPILER_ID:MSVC>:/wd5027>"
+    "$<$<CXX_COMPILER_ID:MSVC>:/wd4625>"
+    "$<$<CXX_COMPILER_ID:MSVC>:/wd4626>"
+    "$<$<CXX_COMPILER_ID:MSVC>:/wd4820>"
+    "$<$<CXX_COMPILER_ID:MSVC>:/wd4464>"
+    )
+target_compile_definitions(SCOF
+    PUBLIC
+        "INCLUDE_TEMPLATES"
+        )
+
+set_target_properties(SCOF PROPERTIES
+    VERSION ${SCOF_VERSION_MAJOR}.${SCOF_VERSION_MINOR}
+    SOVERSION ${SCOF_VERSION_MAJOR}.${SCOF_VERSION_MINOR}
+    CXX_STANDARD 14
+    CXX_STANDARD_REQUIRED YES
+    CXX_EXTENSIONS NO
+    CXX_VISIBILITY_PRESET hidden
+)
+
+if (CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
+    set_target_properties(SCOF PROPERTIES
+        LIBRARY_OUTPUT_DIRECTORY ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}
+        RUNTIME_OUTPUT_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
+        ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}
+    )
+endif()
+
+target_link_libraries (SCOF PUBLIC
+        OpenMeshCore
+        OpenMeshTools
+        OpenVolumeMesh::OpenVolumeMesh
+        ${CHOLMOD_LIBRARIES}
+        )
+
+configure_file (
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/Config/Version.hh.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/src/Config/Version.hh"
+)
+
+include(GenerateExportHeader)
+generate_export_header(SCOF
+    BASE_NAME SCOF
+    EXPORT_FILE_NAME "src/Config/Export.hh"
+)
+
+ if(CHOLMOD_INCLUDES)
+     add_definitions(-DENABLE_SUITESPARSE)
+ endif()
+
+#Set target properties
+target_include_directories(SCOF
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/src>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+        #    PRIVATE
+        #"${CMAKE_CURRENT_BINARY_DIR}/src"
+        ${EIGEN3_INCLUDE_DIR}
+        ${GMM_INCLUDE_DIR}
+        ${CHOLMOD_INCLUDES}
+)
+
+
+if (CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
    add_subdirectory(demo/scof)
 endif()
+
+
+include(CMakePackageConfigHelpers)
+include(GNUInstallDirs)
+
+
+set(INSTALL_CONFIGDIR ${CMAKE_INSTALL_LIBDIR}/cmake/SCOF)
+
+configure_package_config_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/CMAKE/SCOFConfig.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/SCOFConfig.cmake"
+    INSTALL_DESTINATION ${INSTALL_CONFIGDIR}
+    )
+
+write_basic_package_version_file(
+    SCOFConfigVersion.cmake
+    VERSION ${PROJECT_VERSION}
+    COMPATIBILITY SameMajorVersion
+    )
+
+install(FILES
+    "${CMAKE_CURRENT_BINARY_DIR}/SCOFConfigVersion.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/SCOFConfig.cmake"
+    DESTINATION ${INSTALL_CONFIGDIR})
+
+
+install(DIRECTORY
+    "${CMAKE_CURRENT_BINARY_DIR}/SCOF/Config"
+    DESTINATION include/SCOF)
+
+# Install Header Files
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/SCOF
+    DESTINATION include
+    FILES_MATCHING PATTERN "*.hh"
+    )
+
+install(TARGETS SCOF
+    EXPORT SCOFTargets
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
+
+install(EXPORT SCOFTargets
+    FILE SCOFTargets.cmake
+    NAMESPACE SCOF::
+    DESTINATION ${INSTALL_CONFIGDIR}
+)
+
+export(EXPORT SCOFTargets
+    NAMESPACE SCOF::)
+export(PACKAGE SCOF)
+
+list(REMOVE_AT CMAKE_MODULE_PATH -1)

@@ -9,6 +9,8 @@
 #include <algorithm>
 #include <gmm/gmm.h>
 #include <Eigen/Dense>
+#include "Config/Export.hh"
+
 
 //== FORWARDDECLARATIONS ======================================================
 
@@ -19,7 +21,7 @@
 namespace SCOF
 {
 
-class TransitionQuaternion
+class SCOF_EXPORT TransitionQuaternion
 {
 public:
   using Quaternion = Eigen::Quaternion<double>;

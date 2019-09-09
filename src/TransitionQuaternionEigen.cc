@@ -230,7 +230,7 @@ check_quaternions() const
       }
 
   std::sort( angles.begin(), angles.end());
-  std::cerr << "pairangles: " << angles << std::endl;
+//  std::cerr << "pairangles: " << angles << std::endl;
 
   for(int i=0; i<(int)transitions_.size(); ++i)
     std::cerr << closest_transition_idx( transition(i) ) << " should be " << i << std::endl;
