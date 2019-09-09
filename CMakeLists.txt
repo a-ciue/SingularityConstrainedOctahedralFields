@@ -54,9 +54,6 @@ endif()
 set (ACG_COMMON_DO_NOT_COPY_POST_BUILD TRUE)
 include (SCOFDependencies)
 
-get_target_property(INC_DIRS OpenMeshCore INCLUDE_DIRECTORIES)
-message("Target openmesh include dirs: ${INC_DIRS}")
-
 # add library
 add_library (SCOF
             src/AxisAlignment.hh
