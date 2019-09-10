@@ -94,8 +94,7 @@ target_compile_options(SCOF PUBLIC
 target_compile_definitions(SCOF
     PUBLIC
         "INCLUDE_TEMPLATES"
-    PRIVATE
-        "_SCL_SECURE_NO_DEPRECATE" # for GMM        
+        "$<$<CXX_COMPILER_ID:MSVC>:_SCL_SECURE_NO_DEPRECATE>" # for GMM
         )
 
 set_target_properties(SCOF PROPERTIES
