@@ -125,44 +125,44 @@ generate_export_header(SCOF
     EXPORT_FILE_NAME "src/Config/Export.hh"
 )
 
- if(CHOLMOD_INCLUDES)
-     add_definitions(-DENABLE_SUITESPARSE)
-     target_link_libraries (SCOF PUBLIC
-             OpenMeshCore
-             OpenMeshTools
-             OpenVolumeMesh::OpenVolumeMesh
-             ${CHOLMOD_LIBRARIES}
-             )
-     #Set target properties
-     target_include_directories(SCOF
-             PUBLIC
-             $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
-             $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/src>
-             $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-             #    PRIVATE
-             #"${CMAKE_CURRENT_BINARY_DIR}/src"
-             ${EIGEN3_INCLUDE_DIR}
-             ${GMM_INCLUDE_DIR}
-             ${CHOLMOD_INCLUDES}
-             )
- else(CHOLMOD_INCLUDES)
-     target_link_libraries (SCOF PUBLIC
-             OpenMeshCore
-             OpenMeshTools
-             OpenVolumeMesh::OpenVolumeMesh
-             )
-     #Set target properties
-     target_include_directories(SCOF
-             PUBLIC
-             $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
-             $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/src>
-             $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-             #    PRIVATE
-             #"${CMAKE_CURRENT_BINARY_DIR}/src"
-             ${EIGEN3_INCLUDE_DIR}
-             ${GMM_INCLUDE_DIR}
-             )
- endif()
+if(CHOLMOD_INCLUDES)
+    add_definitions(-DENABLE_SUITESPARSE)
+    target_link_libraries (SCOF PUBLIC
+            OpenMeshCore
+            OpenMeshTools
+            OpenVolumeMesh::OpenVolumeMesh
+            GMM::GMM
+            ${CHOLMOD_LIBRARIES}
+            )
+    #Set target properties
+    target_include_directories(SCOF
+            PUBLIC
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/src>
+            $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+            #    PRIVATE
+            #"${CMAKE_CURRENT_BINARY_DIR}/src"
+            ${EIGEN3_INCLUDE_DIR}
+            ${CHOLMOD_INCLUDES}
+            )
+else(CHOLMOD_INCLUDES)
+    target_link_libraries (SCOF PUBLIC
+            OpenMeshCore
+            OpenMeshTools
+            OpenVolumeMesh::OpenVolumeMesh
+            GMM::GMM
+            )
+    #Set target properties
+    target_include_directories(SCOF
+            PUBLIC
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/src>
+            $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+            #    PRIVATE
+            #"${CMAKE_CURRENT_BINARY_DIR}/src"
+            ${EIGEN3_INCLUDE_DIR}
+            )
+endif()
 
 
 if (CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)

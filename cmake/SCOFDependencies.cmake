@@ -32,6 +32,7 @@ endif()
 find_package(GMM)
 if(NOT GMM_FOUND AND "${CMAKE_PROJECT_NAME}" STREQUAL "SCOF")
 	scof_download_gmm()
+    find_package(GMM)
 endif()
 
 
