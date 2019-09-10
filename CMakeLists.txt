@@ -94,6 +94,8 @@ target_compile_options(SCOF PUBLIC
 target_compile_definitions(SCOF
     PUBLIC
         "INCLUDE_TEMPLATES"
+    PRIVATE
+        "_SCL_SECURE_NO_DEPRECATE" # for GMM        
         )
 
 set_target_properties(SCOF PROPERTIES
@@ -131,7 +133,6 @@ if(CHOLMOD_INCLUDES)
             OpenMeshCore
             OpenMeshTools
             OpenVolumeMesh::OpenVolumeMesh
-            GMM::GMM
             ${CHOLMOD_LIBRARIES}
             )
     #Set target properties
@@ -143,6 +144,7 @@ if(CHOLMOD_INCLUDES)
             #    PRIVATE
             #"${CMAKE_CURRENT_BINARY_DIR}/src"
             ${EIGEN3_INCLUDE_DIR}
+            ${GMM_INCLUDE_DIR}            
             ${CHOLMOD_INCLUDES}
             )
 else(CHOLMOD_INCLUDES)
@@ -150,7 +152,6 @@ else(CHOLMOD_INCLUDES)
             OpenMeshCore
             OpenMeshTools
             OpenVolumeMesh::OpenVolumeMesh
-            GMM::GMM
             )
     #Set target properties
     target_include_directories(SCOF
@@ -160,6 +161,7 @@ else(CHOLMOD_INCLUDES)
             $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
             #    PRIVATE
             #"${CMAKE_CURRENT_BINARY_DIR}/src"
+            ${GMM_INCLUDE_DIR}            
             ${EIGEN3_INCLUDE_DIR}
             )
 endif()
