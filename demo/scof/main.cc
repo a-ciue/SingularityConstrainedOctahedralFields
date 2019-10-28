@@ -1,7 +1,7 @@
 #include <iostream>
 #include <fstream>
 
-#include <SingularityConstrainedOctahedralField.hh>
+#include <SCOF/SingularityConstrainedOctahedralField.hh>
 
 bool isInFileGood(const std::string& filename)
 {
