@@ -277,153 +277,119 @@ set_singularity_graph_component_property()
 	}
 
 
-//Singular node type(NOT COMPLETE YET)
-//interior singularity node property
-//TYPE:(b_val-1, b_val0, b_val1, i_val-1, i_val0, i_val1)
-//10: turning point(0, 0, 0, 1, 0, 1)
-//1: (0, 0, 0, 4, 0, 0)
-//2: (0, 0, 0, 2, 2, 2)
-//3: (0, 0, 0, 1, 3, 1)
-//4: (0, 0, 0, 0, 4, 4)
-//boundary singularity node property
-//-1: (3, 0, 0, 0, 0, 0)
-//-2: (2, 2, 1, 0, 0, 0)
-//-3: (2, 2, 2, 0, 0, 0)
-//-4: (2, 2, 2, 0, 0, 0)mirror case of -3
-//-5: (3, 0, 3, 0, 0, 0)
-//-6: (1, 2, 2, 0, 1, 0)
-//-7: (0, 0, 3, 0, 3, 0)
-//-8: (2, 0, 4, 0, 1, 0)
-//-9: (0, 3, 2, 0, 1, 1)
-//-10: (0, 3, 0, 1, 0, 0)
-//-11: (0, 5, 0, 0, 0, 1)
+
 	template <class MeshT>
 	void
 	SingularityGraphT<MeshT>::
 	update_node_type_property()
 	{
-		for(auto v_it = mesh_.v_iter(); v_it.valid(); ++v_it)
-		{
-			if(!mesh_.is_boundary(*v_it))
-			{
-				int n_val_ng1_i = 0, n_val1_i = 0, n_invalid = 0;
-				for(auto voh_it = mesh_.voh_iter(*v_it); voh_it.valid(); ++voh_it)
-				{
-					auto eh = mesh_.edge_handle(*voh_it);
-					if(valence_[eh] == -1)
-						n_val_ng1_i++;
-					else if(valence_[eh] == 1)
-						n_val1_i++;
-					else if(valence_[eh] != 0)
-						n_invalid++;
-				}
-
-				if((n_val_ng1_i==0 && n_val1_i==0) || (n_val_ng1_i==2 && n_val1_i == 0) || (n_val_ng1_i==0 && n_val1_i == 2))
-					node_type_[*v_it] = 0;
-				else if(n_val_ng1_i==4 && n_val1_i==0)
-					node_type_[*v_it] = 1;
-				else if(n_val_ng1_i==2 && n_val1_i == 2)
-					node_type_[*v_it] = 2;
-				else if(n_val_ng1_i==1 && n_val1_i == 3)
-					node_type_[*v_it] = 3;
-				else if(n_val_ng1_i==0 && n_val1_i == 4)
-					node_type_[*v_it] = 4;
-				else if(n_val_ng1_i==1 && n_val1_i==1)
-				{
-					node_type_[*v_it] = 10;
-					std::cerr<<"\nERROR: Wrong Interior Singularity Node Type! Vertex: "<<*v_it
-							 <<" Valance -1 number: "<<n_val_ng1_i<<" Valance 1 number: "<<n_val1_i;
-				}
-				else
-				{
-					node_type_[*v_it] = 20;
-					std::cerr<<"\nERROR: Wrong Interior Singularity Node Type! Vertex: "<<*v_it
-							 <<" Valance -1 number: "<<n_val_ng1_i<<" Valance 1 number: "<<n_val1_i;
-				}
-
-				if(n_invalid > 0)
-				{
-					node_type_[*v_it] = 20;
-					std::cerr<<"\nERROR: Wrong Edge Valance Type at Vertex: "<<*v_it<<" Invalid valance number: "<<n_invalid;
-				}
-			}else
-			{
-				int n_val_ng1_b = 0, n_val1_b = 0,
-						n_val_ng1_i = 0, n_val1_i = 0, n_invalid = 0;
-				for(auto voh_it = mesh_.voh_iter(*v_it); voh_it.valid(); ++voh_it)
-				{
-					EH eh = mesh_.edge_handle(*voh_it);
-					if(mesh_.is_boundary(eh))
-					{
-						if(valence_[eh] == -1)
-							n_val_ng1_b++;
-						else if(valence_[eh] == 1)
-							n_val1_b++;
-						else if(valence_[eh] != 0)
-							n_invalid++;
-					}else
-					{
-						if(valence_[eh] == -1)
-							n_val_ng1_i++;
-						else if(valence_[eh] == 1)
-							n_val1_i++;
-						else if(valence_[eh] != 0)
-							n_invalid++;
-					}
-				}
-
-				if(((n_val_ng1_b==0 && n_val1_b==0 &&n_val_ng1_i ==0 && n_val1_i ==0) ||
-					(n_val_ng1_b==2 && n_val1_b == 0 && n_val_ng1_i ==0 && n_val1_i==0) ||
-					(n_val_ng1_b==0 && n_val1_b == 2 && n_val_ng1_i ==0 && n_val1_i==0)))
-					node_type_[*v_it] = 0;
-				else if(n_val_ng1_b==0 && n_val1_b == 0 && n_val_ng1_i ==0 && n_val1_i==1)
-					node_type_[*v_it] = -11;
-				else if(n_val_ng1_b==0 && n_val1_b == 0 && n_val_ng1_i ==1 && n_val1_i==0)
-					node_type_[*v_it] = -10;
-				else if((n_val_ng1_b==3 && n_val1_b==0) && n_val_ng1_i ==0 && n_val1_i==0)
-					node_type_[*v_it] = -1;
-				else if((n_val_ng1_b==2 && n_val1_b==1)&& n_val_ng1_i ==0 && n_val1_i==0)
-					node_type_[*v_it] = -2;
-				else if((n_val_ng1_b==2 && n_val1_b == 2)&& n_val_ng1_i ==0 && n_val1_i==0)
-				{
-					//TODO:
-					//if val5 -> val3 PI ccw
-					node_type_[*v_it] = -3;
-					//if val3 -> val5 PI ccw
-					node_type_[*v_it] = -4;
-					std::cerr<<"\nHas mirror case! To be clarified...";
-				}
-				else if((n_val_ng1_b==3 && n_val1_b == 3)&& n_val_ng1_i ==0 && n_val1_i==0)
-					node_type_[*v_it] = -5;
-				else if((n_val_ng1_b==1 && n_val1_b == 2)&& n_val_ng1_i ==0 && n_val1_i==0)
-					node_type_[*v_it] = -6;
-				else if((n_val_ng1_b==0 && n_val1_b == 3)&& n_val_ng1_i ==0 && n_val1_i==0)
-					node_type_[*v_it] = -7;
-				else if((n_val_ng1_b==2 && n_val1_b == 4)&& n_val_ng1_i ==0 && n_val1_i==0)
-					node_type_[*v_it] = -8;
-				else if((n_val_ng1_b==0 && n_val1_b == 2)&& n_val_ng1_i ==0 && n_val1_i==1)
-					node_type_[*v_it] = -9;
-				else if((n_val_ng1_b==1 && n_val1_b == 1)&& n_val_ng1_i ==0 && n_val1_i==0)
-				{
-					node_type_[*v_it] = 10;
-					std::cerr<<"\nERROR: Wrong Boundary Singularity Node Type! Vertex: "<<*v_it<<" Valance -1: "<<n_val_ng1_b<<" Valance 1: "<<n_val1_b
-							 <<" Valance3: "<<n_val_ng1_i<<" Valance5: "<<n_val1_i;
-				}
-				else
-				{
-					node_type_[*v_it] = 20;
-					std::cerr<<"\nERROR: Wrong Boundary Singularity Node Type! Vertex: "<<*v_it<<" Valance -1: "<<n_val_ng1_b<<" Valance 1: "<<n_val1_b
-							 <<" Valance3: "<<n_val_ng1_i<<" Valance5: "<<n_val1_i;
-				}
-
-				if(n_invalid > 0)
-				{
-					node_type_[*v_it] = 20;
-					std::cerr<<"\nERROR: Wrong Edge Valance Type at Vertex: "<<*v_it<<" Invalid valance number: "<<n_invalid;
-				}
-			}
-		}
+	    for(const auto vhi : mesh_.vertices()) {
+	        int idx = node_index(vhi);
+            node_type_[vhi] = node_index(vhi);
+            if(idx == 20 || idx == 10)
+	            std::cout<<"ERROR: Wrong Interior Singularity Node Type! Vertex: "<<vhi<<std::endl;
+        }
 	}
+
+
+
+    template <class MeshT>
+    int
+    SingularityGraphT<MeshT>::node_index(const VH& _vh) const {
+        if (!mesh_.is_boundary(_vh)) {
+            int n_val_ng1_i = 0, n_val1_i = 0, n_complex = 0;
+            for (auto voh_it = mesh_.voh_iter(_vh); voh_it.valid(); ++voh_it) {
+                auto eh = mesh_.edge_handle(*voh_it);
+                if (valence_[eh] == -1)
+                    n_val_ng1_i++;
+                else if (valence_[eh] == 1)
+                    n_val1_i++;
+                else if (valence_[eh] != 0)
+                    n_complex++;
+            }
+
+            if (n_complex > 0)
+                return 20;
+
+            if ((n_val_ng1_i == 0 && n_val1_i == 0) || (n_val_ng1_i == 2 && n_val1_i == 0) ||
+                (n_val_ng1_i == 0 && n_val1_i == 2))
+                return 0;
+            else if (n_val_ng1_i == 4 && n_val1_i == 0)
+                return 1;
+            else if (n_val_ng1_i == 2 && n_val1_i == 2)
+                return 2;
+            else if (n_val_ng1_i == 1 && n_val1_i == 3)
+                return 3;
+            else if (n_val_ng1_i == 0 && n_val1_i == 4)
+                return 4;
+            else if (n_val_ng1_i == 1 && n_val1_i == 1) {
+                return 10;
+            } else
+                return 20;
+        } else {
+            int n_val_ng1_b = 0, n_val1_b = 0,
+                    n_val_ng1_i = 0, n_val1_i = 0, n_complex = 0;
+            for (auto voh_it = mesh_.voh_iter(_vh); voh_it.valid(); ++voh_it) {
+                EH eh = mesh_.edge_handle(*voh_it);
+                if (mesh_.is_boundary(eh)) {
+                    if (valence_[eh] == -1)
+                        n_val_ng1_b++;
+                    else if (valence_[eh] == 1)
+                        n_val1_b++;
+                    else if (valence_[eh] != 0)
+                        n_complex++;
+                } else {
+                    if (valence_[eh] == -1)
+                        n_val_ng1_i++;
+                    else if (valence_[eh] == 1)
+                        n_val1_i++;
+                    else if (valence_[eh] != 0)
+                        n_complex++;
+                }
+            }
+
+            if (n_complex > 0)
+                return 20;
+
+            //all cases that num_sge <=4
+            if (((n_val_ng1_b == 0 && n_val1_b == 0 && n_val_ng1_i == 0 && n_val1_i == 0) ||
+                 (n_val_ng1_b == 2 && n_val1_b == 0 && n_val_ng1_i == 0 && n_val1_i == 0) ||
+                 (n_val_ng1_b == 0 && n_val1_b == 2 && n_val_ng1_i == 0 && n_val1_i == 0)))
+                return 0;
+            else if ((n_val_ng1_b == 3 && n_val1_b == 0) && n_val_ng1_i == 0 && n_val1_i == 0)
+                return -1;
+            else if ((n_val_ng1_b == 2 && n_val1_b == 1) && n_val_ng1_i == 0 && n_val1_i == 0)
+                return -2;
+            else if ((n_val_ng1_b == 2 && n_val1_b == 2) && n_val_ng1_i == 0 && n_val1_i == 0)
+                return -3; // -4 has the same number, but it's a mirror case
+            else if ((n_val_ng1_b == 0 && n_val1_b == 3) && n_val_ng1_i == 0 && n_val1_i == 1)
+                return -5;
+            else if ((n_val_ng1_b == 1 && n_val1_b == 2) && n_val_ng1_i == 0 && n_val1_i == 0)
+                return -6;
+            else if ((n_val_ng1_b == 0 && n_val1_b == 3) && n_val_ng1_i == 0 && n_val1_i == 0)
+                return -7;
+            else if ((n_val_ng1_b == 1 && n_val1_b == 2) && n_val_ng1_i == 1 && n_val1_i == 0)
+                return -8;
+                //this could be an invalid case if the interior arc goes in the wrong direction
+            else if ((n_val_ng1_b == 0 && n_val1_b == 2) && n_val_ng1_i == 0 && n_val1_i == 1)
+                return -9;
+            else if (n_val_ng1_b == 0 && n_val1_b == 0 && n_val_ng1_i == 1 && n_val1_i == 0)
+                return -10;
+            else if (n_val_ng1_b == 0 && n_val1_b == 0 && n_val_ng1_i == 0 && n_val1_i == 1)
+                return -11;
+                //this could be an invalid case if the interior arc goes in the wrong direction
+            else if (n_val_ng1_b == 0 && n_val1_b == 2 && n_val_ng1_i == 1 && n_val1_i == 0)
+                return -12;
+            else if (n_val_ng1_b == 0 && n_val1_b == 2 && n_val_ng1_i == 1 && n_val1_i == 1)
+                return -13;
+            else if ((n_val_ng1_b == 1 && n_val1_b == 2) && n_val_ng1_i == 0 && n_val1_i == 1)
+                return -14;
+            else if ((n_val_ng1_b == 1 && n_val1_b == 1) && n_val_ng1_i == 0 && n_val1_i == 0)
+                return 10;
+            else
+                return 20;
+        }
+    }
 
 
 	template <class MeshT>

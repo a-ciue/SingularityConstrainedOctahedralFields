@@ -70,6 +70,33 @@ public:
 
 	VH end_singular_node_on_curve(const int _label, const VH _start_node) const;
 
+    //Heuristically get the node index by counting edge valence
+    //Valid singular node type with <= 4 incident singular edges
+
+    //interior singularity node property
+    //TYPE:(b_val-1, b_val0, b_val1, i_val-1, i_val0, i_val1)
+    //10: turning point(0, 0, 0, 1, 0, 1)
+    //1: (0, 0, 0, 4, 0, 0)
+    //2: (0, 0, 0, 2, 2, 2)
+    //3: (0, 0, 0, 1, 3, 1)
+    //4: (0, 0, 0, 0, 4, 4)
+    //boundary singularity node property
+    //-1: (3, 0, 0, 0, 0, 0)
+    //-2: (2, 2, 1, 0, 0, 0)
+    //-3: (2, 2, 2, 0, 0, 0)
+    //-4: (2, 2, 2, 0, 0, 0)mirror case of -3
+    //-5: (3, 0, 3, 0, 0, 0)
+    //-6: (1, 2, 2, 0, 1, 0)
+    //-7: (0, 0, 3, 0, 3, 0)
+    //-8: (2, 0, 4, 0, 1, 0)
+    //-9: (0, 3, 2, 0, 1, 1)
+    //-10: (0, 3, 0, 1, 0, 0)
+    //-11: (0, 5, 0, 0, 0, 1)
+    //-12: (0, 1, 2, 1, 1, 0)
+    //-13: (0, 2, 2, 1, 0, 1)
+    //-14: (1, 3, 2, 0, 0, 1)
+	int node_index(const VH& _vh) const;
+
 private:
     bool is_end_vertex(const VH _vh) const;
     double distance(const VH _vh0, const VH _vh1) const;
