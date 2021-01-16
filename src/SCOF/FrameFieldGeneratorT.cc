@@ -299,7 +299,7 @@ solve(const std::vector<bool>& face_conquered, std::vector<double>& quaternions)
 
 	    if(nsa > 1)
 	    {
-	      std::cerr << "ERROR: invalid number of singular edges adjacent at tetrahedron - " << nsa << std::endl;
+	      std::cerr << "ERROR: invalid number of singular edges adjacent at tetrahedron " <<*c_it<<" number: "<<nsa << std::endl;
 	    }
 
 	//    if(0)
@@ -411,6 +411,7 @@ init_consistent_transition_quaternions(std::vector<bool>& _face_conquered)
     HFH hfh_opp = mesh_.opposite_halfface_handle(hfh);
     if(!mesh_.is_boundary(hfh_opp))
     {
+      CH  ch     = mesh_.incident_cell(hfh);
       CH  ch_opp = mesh_.incident_cell(hfh_opp);
 
       if(!cell_visited[ch_opp.idx()])
@@ -627,7 +628,7 @@ check_input_consistency()
     int nsa = get_singularity_alignment_hedge(*c_it, he_singularity, axis);
     if(nsa > 1)
     {
-      std::cerr << "ERROR: invalid number of singular edges adjacent at tetrahedron - " << nsa << std::endl;
+      std::cerr << "ERROR: invalid number of singular edges adjacent at tetrahedron - "<<*c_it<<" "<< nsa << std::endl;
       for(std::map<HEH,int>::iterator m_it = axes_cprop_[*c_it].begin(); m_it != axes_cprop_[*c_it].end(); ++m_it)
         std::cerr << m_it->first.idx() << " --> " << m_it->second << std::endl;
     }
@@ -1202,7 +1203,7 @@ construct_quaternion(const AxisAlignment _axis0, const AxisAlignment _axis1, con
   }
   else
   {
-    std::cerr << "Warning: request case of get_quaternion(const AxisAlignment _axis0, const AxisAlignment _axis1, const Vec3& _vector0, const Vec3& _vector1) not implemented yet!!!" << std::endl;
+    std::cerr << "Warning: request case of get_quaternion(const AxisAlignment _axis0, const AxisAlignment _axis1, const Vec3& _vector0, const Vec3& _vector1) not implemented yet!!! Axis0: "<<_axis0<<" axis1: "<<_axis1<< std::endl;
     return Eigen::Quaterniond(1,0,0,0);
   }
 }
@@ -1512,7 +1513,9 @@ is_consistent(const int _transition, const AxisAlignment _axis, const int _valan
       {
         std::cerr << "ERROR: inconsistent transition:" << std::endl;
         std::cerr << "transition  axis " << rot_axis   << " angle " << rot_angle << std::endl;
-        std::cerr << "edge        axis " << int(_axis) << " index " << _valance << std::endl;
+          std::cerr << "e  axis " << e_axis   << " angle " << e_angle << std::endl;
+
+          std::cerr << "edge        axis " << int(_axis) << " index " << _valance << std::endl;
         return false;
       }
   }
@@ -1532,7 +1535,7 @@ normalize_rotation(int& _axis, int& _angle) const
   {
     // negate angle and axis
     _angle *= -1;
-    if(_axis % 1)
+    if(_axis % 2)
       --_axis;
     else
       ++_axis;
