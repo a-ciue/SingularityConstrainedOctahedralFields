@@ -201,7 +201,7 @@ add_corner_constraints(std::map<EH, std::vector<int> >& _eh_to_corners)
 		std::shared_ptr<CornerT<TetMesh> > corner(new CornerT<TetMesh>());
 		for(int j=0; j<3; ++j)
 		{
-			HEH hej = mesh_.halfedge(corner_vt_prop[OVM::MeshHandle(0)][4*i], corner_vt_prop[OVM::MeshHandle(0)][4*i+j+1]);
+			HEH hej = mesh_.find_halfedge(corner_vt_prop[OVM::MeshHandle(0)][4*i], corner_vt_prop[OVM::MeshHandle(0)][4*i+j+1]);
 			corner.get()->set_ith_halfedge(j, hej);
 			corner.get()->set_ith_dual_path(j, dp_prop[OVM::MeshHandle(0)][3*i+j]);
 		}
@@ -286,7 +286,7 @@ add_tangent_continuity_constraints()
 			std::shared_ptr<TangentContinuityT<TetMesh> > tc(new TangentContinuityT<TetMesh>());
 			for(int j=0; j<2; ++j)
 			{
-				HEH hej = mesh_.halfedge(tc_vt_prop[OVM::MeshHandle(0)][3*i], tc_vt_prop[OVM::MeshHandle(0)][3*i+j+1]);
+				HEH hej = mesh_.find_halfedge(tc_vt_prop[OVM::MeshHandle(0)][3*i], tc_vt_prop[OVM::MeshHandle(0)][3*i+j+1]);
 				tc.get()->set_ith_halfedge(j, hej);
 			}
 			tc.get()->set_dual_path(tc_dp_prop[OVM::MeshHandle(0)][i]);
@@ -1509,12 +1509,12 @@ cell_edges(const CH _ch, std::vector<EH>& _ehs)const
 {
 	std::vector<VH> vhs = mesh_.get_cell_vertices(_ch);
 
-	_ehs.push_back(mesh_.edge_handle(mesh_.halfedge(vhs[0], vhs[1])));
-	_ehs.push_back(mesh_.edge_handle(mesh_.halfedge(vhs[0], vhs[2])));
-	_ehs.push_back(mesh_.edge_handle(mesh_.halfedge(vhs[0], vhs[3])));
-	_ehs.push_back(mesh_.edge_handle(mesh_.halfedge(vhs[1], vhs[2])));
-	_ehs.push_back(mesh_.edge_handle(mesh_.halfedge(vhs[1], vhs[3])));
-	_ehs.push_back(mesh_.edge_handle(mesh_.halfedge(vhs[2], vhs[3])));
+	_ehs.push_back(mesh_.edge_handle(mesh_.find_halfedge(vhs[0], vhs[1])));
+	_ehs.push_back(mesh_.edge_handle(mesh_.find_halfedge(vhs[0], vhs[2])));
+	_ehs.push_back(mesh_.edge_handle(mesh_.find_halfedge(vhs[0], vhs[3])));
+	_ehs.push_back(mesh_.edge_handle(mesh_.find_halfedge(vhs[1], vhs[2])));
+	_ehs.push_back(mesh_.edge_handle(mesh_.find_halfedge(vhs[1], vhs[3])));
+	_ehs.push_back(mesh_.edge_handle(mesh_.find_halfedge(vhs[2], vhs[3])));
 }
 
 

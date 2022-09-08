@@ -41,7 +41,7 @@ endfunction()
 function(scof_download_openvolumemesh)
     scof_download_project(OpenVolumeMesh
         GIT_REPOSITORY       https://www.graphics.rwth-aachen.de:9000/OpenVolumeMesh/OpenVolumeMesh.git
-        GIT_TAG              cgg
+        GIT_TAG              master
         )
     if (${SCOF_DOWNLOAD_MISSINGS_DEPS})
         add_subdirectory(${SCOF_EXTERNAL}/OpenVolumeMesh)
@@ -60,12 +60,24 @@ function(scof_download_eigen)
     endif()
 endfunction()
 
+## Eigen
+function(scof_download_eigen)
+    scof_download_project(eigen
+            GIT_REPOSITORY      https://gitlab.com/libeigen/eigen.git
+            GIT_TAG             master
+            )
+    add_library (Eigen3::Eigen INTERFACE IMPORTED)
+    target_include_directories (Eigen3::Eigen SYSTEM INTERFACE $<BUILD_INTERFACE:${SCOF_EXTERNAL}/eigen>)
+    #    target_include_directories (Eigen3::Eigen SYSTEM INTERFACE "${ALGOHEX_EXTERNAL}/eigen")
+    target_compile_definitions(Eigen3::Eigen INTERFACE -DEIGEN_HAS_STD_RESULT_OF=0)
+endfunction()
+
 
 ## GMM
 function(scof_download_gmm)
     scof_download_project(gmm
-            URL           http://download-mirror.savannah.gnu.org/releases/getfem/stable/gmm-5.3.tar.gz
-            URL_HASH SHA256=86ac46d69982afd9bc0d032788ae6ab81eab8118df1012690b1c2501ec687252
+            URL           http://download-mirror.savannah.gnu.org/releases/getfem/stable/gmm-5.4.tar.gz
+            URL_HASH SHA256=7163d5080efbe6893d1950e4b331cd3e9160bb3dcf583d206920fba6af7b1e56
             )
     if (${SCOF_DOWNLOAD_MISSINGS_DEPS})
         set(GMM_INCLUDE_DIR $<BUILD_INTERFACE:${SCOF_EXTERNAL}/gmm/include> PARENT_SCOPE)

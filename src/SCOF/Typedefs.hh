@@ -6,10 +6,18 @@
  */
 #pragma once
 
-#include <OpenVolumeMesh/Core/OpenVolumeMeshHandle.hh>
+//#include <OpenVolumeMesh/Core/OpenVolumeMeshHandle.hh>
+//#include <OpenVolumeMesh/Core/BaseEntities.hh>
+//#include <OpenVolumeMesh/Core/PropertyPtr.hh>
+//#include <OpenVolumeMesh/Core/PropertyDefines.hh>
+//#include <OpenVolumeMesh/Geometry/VectorT.hh>
+//#include <OpenVolumeMesh/Mesh/TetrahedralGeometryKernel.hh>
+//#include <OpenVolumeMesh/Core/GeometryKernel.hh>
+//#include <OpenVolumeMesh/Attribs/StatusAttrib.hh>
+
+#include <OpenVolumeMesh/Core/Handles.hh>
 #include <OpenVolumeMesh/Core/BaseEntities.hh>
-#include <OpenVolumeMesh/Core/PropertyPtr.hh>
-#include <OpenVolumeMesh/Core/PropertyDefines.hh>
+#include <OpenVolumeMesh/Core/Properties/PropertyPtr.hh>
 #include <OpenVolumeMesh/Geometry/VectorT.hh>
 #include <OpenVolumeMesh/Mesh/TetrahedralGeometryKernel.hh>
 #include <OpenVolumeMesh/Core/GeometryKernel.hh>

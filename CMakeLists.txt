@@ -16,6 +16,11 @@
 
 cmake_minimum_required (VERSION 3.9)
 
+# AutoMOC/AutoUIC
+if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.17")
+    cmake_policy(SET CMP0100 NEW)
+endif()
+
 list (APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 project (SCOF
@@ -37,7 +42,7 @@ if (CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
     set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/Build/lib")
     set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/Build/lib")
 
-    set(CMAKE_CXX_STANDARD 14)
+    set(CMAKE_CXX_STANDARD 17)
 endif()
 
 set(SCOF_EXTERNAL "${CMAKE_CURRENT_SOURCE_DIR}/external")
@@ -101,7 +106,7 @@ target_compile_definitions(SCOF
 set_target_properties(SCOF PROPERTIES
         VERSION ${SCOF_VERSION_MAJOR}.${SCOF_VERSION_MINOR}
         SOVERSION ${SCOF_VERSION_MAJOR}.${SCOF_VERSION_MINOR}
-        CXX_STANDARD 14
+        CXX_STANDARD 17
         CXX_STANDARD_REQUIRED YES
         CXX_EXTENSIONS NO
         CXX_VISIBILITY_PRESET hidden
@@ -133,6 +138,7 @@ if(CHOLMOD_INCLUDES)
             OpenMeshCore
             OpenMeshTools
             OpenVolumeMesh::OpenVolumeMesh
+            Eigen3::Eigen
             ${CHOLMOD_LIBRARIES}
             )
     #Set target properties
@@ -143,7 +149,7 @@ if(CHOLMOD_INCLUDES)
             $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
             #    PRIVATE
             #"${CMAKE_CURRENT_BINARY_DIR}/src"
-            ${EIGEN3_INCLUDE_DIR}
+#            ${EIGEN3_INCLUDE_DIR}
             ${GMM_INCLUDE_DIR}
             ${CHOLMOD_INCLUDES}
             )
@@ -152,6 +158,7 @@ else(CHOLMOD_INCLUDES)
             OpenMeshCore
             OpenMeshTools
             OpenVolumeMesh::OpenVolumeMesh
+            Eigen3::Eigen
             )
     #Set target properties
     target_include_directories(SCOF
@@ -162,10 +169,14 @@ else(CHOLMOD_INCLUDES)
             #    PRIVATE
             #"${CMAKE_CURRENT_BINARY_DIR}/src"
             ${GMM_INCLUDE_DIR}
-            ${EIGEN3_INCLUDE_DIR}
+#            ${EIGEN3_INCLUDE_DIR}
             )
 endif()
 
+#If set found by upper level, eigen needs it to compile
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(SCOF PUBLIC OpenMP::OpenMP_CXX OpenMP::OpenMP_C)
+endif()
 
 if (CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
     add_subdirectory(demo/scof)

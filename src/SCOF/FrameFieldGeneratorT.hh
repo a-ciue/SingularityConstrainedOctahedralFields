@@ -18,11 +18,11 @@
 #include <iomanip>
 #include <float.h>
 
-#include <Eigen/Dense>
-#include <Eigen/Sparse>
+#include <Eigen/Core>
+#include <Eigen/SparseCore>
 
 #include <OpenVolumeMesh/Mesh/TetrahedralMesh.hh>
-#include <OpenVolumeMesh/Core/PropertyDefines.hh>
+#include <OpenVolumeMesh/Core/Properties/PropertyPtr.hh>
 #include <OpenVolumeMesh/Mesh/TetrahedralGeometryKernel.hh>
 
 #include "TransitionQuaternionEigen.hh"

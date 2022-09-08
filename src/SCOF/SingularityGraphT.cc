@@ -159,7 +159,7 @@ set_singularity_graph_component_property()
 			if(is_boundary_curve)//TODO: more careful on what is boundary curve
 //		if(mesh_.is_boundary(curve_ehs[0]))
 			{
-				HEH he = mesh_.halfedge(curve_vhs[0], curve_vhs[curve_vhs.size()-1]);
+				HEH he = mesh_.find_halfedge(curve_vhs[0], curve_vhs[curve_vhs.size()-1]);
 				//boundary circle
 				if(he.is_valid())
 					for(auto i : curve_ehs)
@@ -180,7 +180,7 @@ set_singularity_graph_component_property()
 				}else if(curve_vhs.size() > 2)
 				{
 					int type = 0;
-					HEH he = mesh_.halfedge(curve_vhs[0], curve_vhs[curve_vhs.size()-1]);
+					HEH he = mesh_.find_halfedge(curve_vhs[0], curve_vhs[curve_vhs.size()-1]);
 					//interior singular arc touches the boundary
 					if(!he.is_valid() && mesh_.is_boundary(curve_vhs[0]) && mesh_.is_boundary(curve_vhs[curve_vhs.size()-1]))
 						type = -2;
@@ -285,7 +285,7 @@ set_singularity_graph_component_property()
 	{
 	    for(const auto vhi : mesh_.vertices()) {
 	        int idx = node_index(vhi);
-            node_type_[vhi] = node_index(vhi);
+            node_type_[vhi] = idx;
             if(idx == 20 || idx == 10)
 	            std::cout<<"ERROR: Wrong Interior Singularity Node Type! Vertex: "<<vhi<<std::endl;
         }
@@ -297,19 +297,43 @@ set_singularity_graph_component_property()
     int
     SingularityGraphT<MeshT>::node_index(const VH& _vh) const {
         if (!mesh_.is_boundary(_vh)) {
-            int n_val_ng1_i = 0, n_val1_i = 0, n_complex = 0;
+            int n_all = 0, n_val_ng1_i = 0, n_val1_i = 0, n_val_ng2_i = 0, n_val2_i = 0, n_val3_i = 0, n_val4_i = 0, n_complex = 0;
             for (auto voh_it = mesh_.voh_iter(_vh); voh_it.valid(); ++voh_it) {
                 auto eh = mesh_.edge_handle(*voh_it);
                 if (valence_[eh] == -1)
                     n_val_ng1_i++;
                 else if (valence_[eh] == 1)
                     n_val1_i++;
+                else if (valence_[eh] == -2)
+                    n_val_ng2_i++;
+                else if (valence_[eh] == 2)
+                    n_val2_i++;
+                else if (valence_[eh] == 3)
+                    n_val3_i++;
+                else if (valence_[eh] == 4)
+                    n_val4_i++;
                 else if (valence_[eh] != 0)
                     n_complex++;
+
+                if(valence_[eh] != 0)
+                    n_all++;
             }
 
             if (n_complex > 0)
                 return 20;
+
+            if(n_val_ng2_i != 0 || n_val2_i != 0 || n_val3_i != 0 || n_val4_i != 0) {
+                if (n_val_ng1_i == 0 && n_val1_i == 0 && n_val_ng2_i == 0 && n_val2_i == 2)
+                    return 0;
+                else if (n_val_ng1_i == 0 && n_val1_i == 0 && n_val_ng2_i == 2 && n_val2_i == 0)
+                    return 0;
+                else if (n_all == 2 && n_val3_i == 2)
+                    return 0;
+                else if (n_all == 2 && n_val4_i == 2)
+                    return 0;
+                else
+                    return 20;
+            }
 
             if ((n_val_ng1_i == 0 && n_val1_i == 0) || (n_val_ng1_i == 2 && n_val1_i == 0) ||
                 (n_val_ng1_i == 0 && n_val1_i == 2))
@@ -322,13 +346,21 @@ set_singularity_graph_component_property()
                 return 3;
             else if (n_val_ng1_i == 0 && n_val1_i == 4)
                 return 4;
+            else if (n_val_ng1_i == 2 && n_val1_i == 6)
+                return 5;
+            else if (n_val_ng1_i == 0 && n_val1_i == 6)
+                return 6;
+            else if (n_val_ng1_i == 0 && n_val1_i == 8)
+                return 7;
+            else if (n_val_ng1_i == 0 && n_val1_i == 12)
+                return 8;
             else if (n_val_ng1_i == 1 && n_val1_i == 1) {
                 return 10;
             } else
                 return 20;
         } else {
-            int n_val_ng1_b = 0, n_val1_b = 0,
-                    n_val_ng1_i = 0, n_val1_i = 0, n_complex = 0;
+            int n_all = 0, n_val_ng1_b = 0, n_val_ng2_b = 0, n_val1_b = 0, n_val2_b = 0,
+                    n_val2_i = 0, n_val3_i = 0, n_val4_i = 0, n_val_ng2_i = 0, n_val_ng1_i = 0, n_val1_i = 0, n_complex = 0;
             for (auto voh_it = mesh_.voh_iter(_vh); voh_it.valid(); ++voh_it) {
                 EH eh = mesh_.edge_handle(*voh_it);
                 if (mesh_.is_boundary(eh)) {
@@ -336,59 +368,212 @@ set_singularity_graph_component_property()
                         n_val_ng1_b++;
                     else if (valence_[eh] == 1)
                         n_val1_b++;
-                    else if (valence_[eh] != 0)
-                        n_complex++;
+                    else if (valence_[eh] == -2)
+                        n_val_ng2_b++;
+                    else if (valence_[eh] == 2)
+                        n_val2_b++;
                 } else {
                     if (valence_[eh] == -1)
                         n_val_ng1_i++;
                     else if (valence_[eh] == 1)
                         n_val1_i++;
+                    else if (valence_[eh] == -2)
+                        n_val_ng2_i++;
+                    else if (valence_[eh] == 2)
+                        n_val2_i++;
+                    else if (valence_[eh] == 3)
+                        n_val3_i++;
+                    else if (valence_[eh] == 4)
+                        n_val4_i++;
                     else if (valence_[eh] != 0)
                         n_complex++;
                 }
+
+                if(valence_[eh] != 0)
+                    n_all++;
             }
 
             if (n_complex > 0)
                 return 20;
 
+            if(n_val_ng2_i != 0 || n_val2_i != 0 || n_val3_i != 0 || n_val4_i != 0) {
+                if (n_val_ng1_b == 0 && n_val1_b == 0 && n_val_ng1_i == 0 && n_val1_i == 0 &&
+                    n_val_ng2_b == 0 && n_val2_b == 0 && n_val_ng2_i == 1 && n_val2_i == 0)
+                    return -10;
+                else if (n_val_ng1_b == 0 && n_val1_b == 0 && n_val_ng1_i == 0 && n_val1_i == 0 &&
+                         n_val_ng2_b == 0 && n_val2_b == 0 && n_val_ng2_i == 0 && n_val2_i == 1)
+                    return -11;
+                else if (n_all == 1 && n_val3_i == 1) // only enumerate simple case
+                    return -18;
+                else if (n_all == 1 && n_val4_i == 1) // only enumerate simple case
+                    return -19;
+                else
+                    return 20;
+            }
+
             //all cases that num_sge <=4
-            if (((n_val_ng1_b == 0 && n_val1_b == 0 && n_val_ng1_i == 0 && n_val1_i == 0) ||
-                 (n_val_ng1_b == 2 && n_val1_b == 0 && n_val_ng1_i == 0 && n_val1_i == 0) ||
-                 (n_val_ng1_b == 0 && n_val1_b == 2 && n_val_ng1_i == 0 && n_val1_i == 0)))
-                return 0;
-            else if ((n_val_ng1_b == 3 && n_val1_b == 0) && n_val_ng1_i == 0 && n_val1_i == 0)
-                return -1;
-            else if ((n_val_ng1_b == 2 && n_val1_b == 1) && n_val_ng1_i == 0 && n_val1_i == 0)
-                return -2;
-            else if ((n_val_ng1_b == 2 && n_val1_b == 2) && n_val_ng1_i == 0 && n_val1_i == 0)
-                return -3; // -4 has the same number, but it's a mirror case
-            else if ((n_val_ng1_b == 0 && n_val1_b == 3) && n_val_ng1_i == 0 && n_val1_i == 1)
-                return -5;
-            else if ((n_val_ng1_b == 1 && n_val1_b == 2) && n_val_ng1_i == 0 && n_val1_i == 0)
-                return -6;
-            else if ((n_val_ng1_b == 0 && n_val1_b == 3) && n_val_ng1_i == 0 && n_val1_i == 0)
-                return -7;
-            else if ((n_val_ng1_b == 1 && n_val1_b == 2) && n_val_ng1_i == 1 && n_val1_i == 0)
-                return -8;
-                //this could be an invalid case if the interior arc goes in the wrong direction
-            else if ((n_val_ng1_b == 0 && n_val1_b == 2) && n_val_ng1_i == 0 && n_val1_i == 1)
-                return -9;
-            else if (n_val_ng1_b == 0 && n_val1_b == 0 && n_val_ng1_i == 1 && n_val1_i == 0)
-                return -10;
-            else if (n_val_ng1_b == 0 && n_val1_b == 0 && n_val_ng1_i == 0 && n_val1_i == 1)
-                return -11;
-                //this could be an invalid case if the interior arc goes in the wrong direction
-            else if (n_val_ng1_b == 0 && n_val1_b == 2 && n_val_ng1_i == 1 && n_val1_i == 0)
-                return -12;
-            else if (n_val_ng1_b == 0 && n_val1_b == 2 && n_val_ng1_i == 1 && n_val1_i == 1)
-                return -13;
-            else if ((n_val_ng1_b == 1 && n_val1_b == 2) && n_val_ng1_i == 0 && n_val1_i == 1)
-                return -14;
-            else if ((n_val_ng1_b == 1 && n_val1_b == 1) && n_val_ng1_i == 0 && n_val1_i == 0)
-                return 10;
-            else
+//                if(n_val_ng1_i == 0 && n_val1_i == 0) {
+//                    if((n_val_ng1_b == 0 && n_val1_b == 0 && n_val_ng2_b == 0 && n_val2_b == 0) ||
+//                       (n_val_ng1_b == 2 && n_val1_b == 0 && n_val_ng2_b == 0 && n_val2_b == 0) ||
+//                       (n_val_ng1_b == 0 && n_val1_b == 2 && n_val_ng2_b == 0 && n_val2_b == 0) ||
+//                       (n_val_ng1_b == 0 && n_val1_b == 0 && n_val_ng2_b == 2 && n_val2_b == 0) ||
+//                       (n_val_ng1_b == 0 && n_val1_b == 0 && n_val_ng2_b == 0 && n_val2_b == 2))
+//                        return 0;
+//                }
+            if(n_val_ng2_b == 0 && n_val2_b == 0) {
+                if (((n_val_ng1_b == 0 && n_val1_b == 0 && n_val_ng1_i == 0 && n_val1_i == 0) ||
+                     (n_val_ng1_b == 2 && n_val1_b == 0 && n_val_ng1_i == 0 && n_val1_i == 0) ||
+                     (n_val_ng1_b == 0 && n_val1_b == 2 && n_val_ng1_i == 0 && n_val1_i == 0)))
+                    return 0;
+                else if ((n_val_ng1_b == 3 && n_val1_b == 0) && n_val_ng1_i == 0 && n_val1_i == 0)
+                    return -1;
+                else if ((n_val_ng1_b == 2 && n_val1_b == 1) && n_val_ng1_i == 0 && n_val1_i == 0)
+                    return -2;
+                else if ((n_val_ng1_b == 2 && n_val1_b == 2) && n_val_ng1_i == 0 && n_val1_i == 0)
+                    return -3; // -4 has the same number, but it's a mirror case
+                else if ((n_val_ng1_b == 0 && n_val1_b == 3) && n_val_ng1_i == 0 && n_val1_i == 1)
+                    return -5;
+                else if ((n_val_ng1_b == 1 && n_val1_b == 2) && n_val_ng1_i == 0 && n_val1_i == 0)
+                    return -6;
+                else if ((n_val_ng1_b == 0 && n_val1_b == 3) && n_val_ng1_i == 0 && n_val1_i == 0)
+                    return -7;
+                else if ((n_val_ng1_b == 1 && n_val1_b == 2) && n_val_ng1_i == 1 && n_val1_i == 0)
+                    return -8;
+                    //this could be an invalid case if the interior arc goes in the wrong direction
+                else if ((n_val_ng1_b == 0 && n_val1_b == 2) && n_val_ng1_i == 0 && n_val1_i == 1)
+                    return -9;
+                else if (n_val_ng1_b == 0 && n_val1_b == 0 && n_val_ng1_i == 1 && n_val1_i == 0)
+                    return -10;
+                else if (n_val_ng1_b == 0 && n_val1_b == 0 && n_val_ng1_i == 0 && n_val1_i == 1)
+                    return -11;
+                    //this could be an invalid case if the interior arc goes in the wrong direction
+                else if (n_val_ng1_b == 0 && n_val1_b == 2 && n_val_ng1_i == 1 && n_val1_i == 0)
+                    return -12;
+                else if (n_val_ng1_b == 0 && n_val1_b == 2 && n_val_ng1_i == 1 && n_val1_i == 1)
+                    return -13;
+                else if ((n_val_ng1_b == 1 && n_val1_b == 2) && n_val_ng1_i == 0 && n_val1_i == 1)
+                    return -14;
+                else if (((n_val_ng1_b == 1 && n_val1_b == 1) && n_val_ng1_i == 0 && n_val1_i == 0) ||
+                         ((n_val_ng1_b == 1 && n_val1_i == 1) && n_val_ng1_i == 0 && n_val1_b == 0) ||
+                         ((n_val_ng1_i == 1 && n_val1_b == 1) && n_val_ng1_b == 0 && n_val1_i == 0))
+                    return 10;
+                else
+                    return 20;
+            } else {//valence +2
+                if(n_val_ng1_i == 0 && n_val1_i == 0 && n_val_ng1_b == 0 && n_val1_b == 0) {
+                    if ((n_val_ng2_b == 2 && n_val2_b == 0) ||
+                        (n_val_ng2_b == 0 && n_val2_b == 2)) {
+                        return 0;
+                    }
+                }
+
+                //two 0-sector touch
+                if(n_val_ng2_b == 0 && n_val2_b == 1 && n_val_ng1_b == 2 && n_val1_b == 2 && n_val_ng1_i == 0 && n_val1_i == 0)
+                    return -15;
+
+                if(n_val_ng2_b == 0 && n_val2_b == 1 && n_val_ng1_b == 2 && n_val1_b == 0 && n_val_ng1_i == 0 && n_val1_i == 0)
+                    return -16;
+
+                if(n_val_ng2_b == 0 && n_val2_b == 1 && n_val_ng1_b == 0 && n_val1_b == 2 && n_val_ng1_i == 0 && n_val1_i == 0)
+                    return -17;
+
                 return 20;
+            }
         }
+
+//        if (!mesh_.is_boundary(_vh)) {
+//            int n_val_ng1_i = 0, n_val1_i = 0, n_complex = 0;
+//            for (auto voh_it = mesh_.voh_iter(_vh); voh_it.valid(); ++voh_it) {
+//                auto eh = mesh_.edge_handle(*voh_it);
+//                if (valence_[eh] == -1)
+//                    n_val_ng1_i++;
+//                else if (valence_[eh] == 1)
+//                    n_val1_i++;
+//                else if (valence_[eh] != 0)
+//                    n_complex++;
+//            }
+//
+//            if (n_complex > 0)
+//                return 20;
+//
+//            if ((n_val_ng1_i == 0 && n_val1_i == 0) || (n_val_ng1_i == 2 && n_val1_i == 0) ||
+//                (n_val_ng1_i == 0 && n_val1_i == 2))
+//                return 0;
+//            else if (n_val_ng1_i == 4 && n_val1_i == 0)
+//                return 1;
+//            else if (n_val_ng1_i == 2 && n_val1_i == 2)
+//                return 2;
+//            else if (n_val_ng1_i == 1 && n_val1_i == 3)
+//                return 3;
+//            else if (n_val_ng1_i == 0 && n_val1_i == 4)
+//                return 4;
+//            else if (n_val_ng1_i == 1 && n_val1_i == 1) {
+//                return 10;
+//            } else
+//                return 20;
+//        } else {
+//            int n_val_ng1_b = 0, n_val1_b = 0,
+//                    n_val_ng1_i = 0, n_val1_i = 0, n_complex = 0;
+//            for (auto voh_it = mesh_.voh_iter(_vh); voh_it.valid(); ++voh_it) {
+//                EH eh = mesh_.edge_handle(*voh_it);
+//                if (mesh_.is_boundary(eh)) {
+//                    if (valence_[eh] == -1)
+//                        n_val_ng1_b++;
+//                    else if (valence_[eh] == 1)
+//                        n_val1_b++;
+//                    else if (valence_[eh] != 0)
+//                        n_complex++;
+//                } else {
+//                    if (valence_[eh] == -1)
+//                        n_val_ng1_i++;
+//                    else if (valence_[eh] == 1)
+//                        n_val1_i++;
+//                    else if (valence_[eh] != 0)
+//                        n_complex++;
+//                }
+//            }
+//
+//            if (n_complex > 0)
+//                return 20;
+//
+//            //all cases that num_sge <=4
+//            if (((n_val_ng1_b == 0 && n_val1_b == 0 && n_val_ng1_i == 0 && n_val1_i == 0) ||
+//                 (n_val_ng1_b == 2 && n_val1_b == 0 && n_val_ng1_i == 0 && n_val1_i == 0) ||
+//                 (n_val_ng1_b == 0 && n_val1_b == 2 && n_val_ng1_i == 0 && n_val1_i == 0)))
+//                return 0;
+//            else if ((n_val_ng1_b == 3 && n_val1_b == 0) && n_val_ng1_i == 0 && n_val1_i == 0)
+//                return -1;
+//            else if ((n_val_ng1_b == 2 && n_val1_b == 1) && n_val_ng1_i == 0 && n_val1_i == 0)
+//                return -2;
+//            else if ((n_val_ng1_b == 2 && n_val1_b == 2) && n_val_ng1_i == 0 && n_val1_i == 0)
+//                return -3; // -4 has the same number, but it's a mirror case
+//            else if ((n_val_ng1_b == 0 && n_val1_b == 3) && n_val_ng1_i == 0 && n_val1_i == 1)
+//                return -5;
+//            else if ((n_val_ng1_b == 1 && n_val1_b == 2) && n_val_ng1_i == 0 && n_val1_i == 0)
+//                return -6;
+//            else if ((n_val_ng1_b == 0 && n_val1_b == 3) && n_val_ng1_i == 0 && n_val1_i == 0)
+//                return -7;
+//            else if ((n_val_ng1_b == 1 && n_val1_b == 2) && n_val_ng1_i == 1 && n_val1_i == 0)
+//                return -8;
+//                //this could be an invalid case if the interior arc goes in the wrong direction
+//            else if ((n_val_ng1_b == 0 && n_val1_b == 2) && n_val_ng1_i == 0 && n_val1_i == 1)
+//                return -9;
+//            else if (n_val_ng1_b == 0 && n_val1_b == 0 && n_val_ng1_i == 1 && n_val1_i == 0)
+//                return -10;
+//            else if (n_val_ng1_b == 0 && n_val1_b == 0 && n_val_ng1_i == 0 && n_val1_i == 1)
+//                return -11;
+//                //this could be an invalid case if the interior arc goes in the wrong direction
+//            else if (n_val_ng1_b == 0 && n_val1_b == 2 && n_val_ng1_i == 1 && n_val1_i == 0)
+//                return -12;
+//            else if (n_val_ng1_b == 0 && n_val1_b == 2 && n_val_ng1_i == 1 && n_val1_i == 1)
+//                return -13;
+//            else if ((n_val_ng1_b == 1 && n_val1_b == 2) && n_val_ng1_i == 0 && n_val1_i == 1)
+//                return -14;
+//            else if ((n_val_ng1_b == 1 && n_val1_b == 1) && n_val_ng1_i == 0 && n_val1_i == 0)
+//                return 10;
+//            else
+//                return 20;
+//        }
     }
 
 
@@ -586,9 +771,9 @@ set_singularity_graph_component_property()
         sort_vertices_on_curve(_label, vhs);
 
         for(size_t i=0; i<vhs.size()-1; ++i)
-            _hes.push_back(mesh_.halfedge(vhs[i], vhs[i+1]));
+            _hes.push_back(mesh_.find_halfedge(vhs[i], vhs[i+1]));
 
-        auto he = mesh_.halfedge(vhs[vhs.size()-1], vhs[0]);
+        auto he = mesh_.find_halfedge(vhs[vhs.size()-1], vhs[0]);
         if(he.is_valid() && vhs.size() > 2 && label_[mesh_.edge_handle(he)] == _label)
             _hes.push_back(he);
     }
