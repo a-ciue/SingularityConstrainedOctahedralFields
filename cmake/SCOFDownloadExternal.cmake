@@ -41,7 +41,7 @@ endfunction()
 function(scof_download_openvolumemesh)
     scof_download_project(OpenVolumeMesh
         GIT_REPOSITORY       https://www.graphics.rwth-aachen.de:9000/OpenVolumeMesh/OpenVolumeMesh.git
-        GIT_TAG              master
+        GIT_TAG              v3.2.1
         )
     if (${SCOF_DOWNLOAD_MISSINGS_DEPS})
         add_subdirectory(${SCOF_EXTERNAL}/OpenVolumeMesh)
