@@ -1054,6 +1054,42 @@ constrained_chart_mergingTB()
 	VP<bool> unconnected_vh_prop =
 			mesh_.template request_vertex_property<bool>("unconnected_vh");
 
+	//pre-process: identify tube to boundary connectivity
+	std::map<int, std::vector<int>> tube_to_boundaries;
+	for(auto vhi : mesh_.vertices())
+		if(mesh_.is_boundary(vhi) && unconnected_vh_prop[vhi])
+		{
+			HEH he_sg(-1);
+			for(auto voh_it = mesh_.voh_iter(vhi); voh_it.valid(); ++voh_it)
+			{
+				auto eho = mesh_.edge_handle(*voh_it);
+				if(!mesh_.is_boundary(eho) && valance_[eho] != 0)
+				{
+					he_sg = *voh_it;
+					break;
+				}
+			}
+			auto ch_isg = *mesh_.hec_iter(he_sg);
+			int tube_chart_id = real_chart_id_[chart_id_[ch_isg]];
+			if(tube_chart_id < 0)
+				continue;
+
+			HEH he_bnd(-1);
+			for(auto voh_it = mesh_.voh_iter(vhi); voh_it.valid(); ++voh_it)
+				if(mesh_.is_boundary(*voh_it))
+				{
+					he_bnd = *voh_it;
+					break;
+				}
+			auto ch_bnd = *mesh_.hec_iter(he_bnd);
+			int bc_id = real_chart_id_[chart_id_[ch_bnd]];
+
+			tube_to_boundaries[tube_chart_id].push_back(bc_id);
+		}
+
+	//record first connection info for deferred trans_prop_ assignment
+	std::map<int, std::tuple<std::vector<HFH>, int, VH>> tube_first_connection;
+
 	//for all interior singular tubes that are incident to the boundary, merge to boundary charts
 	for(auto vhi : mesh_.vertices())
 		if(mesh_.is_boundary(vhi) && unconnected_vh_prop[vhi])
@@ -1090,35 +1126,52 @@ constrained_chart_mergingTB()
 
 			int axis = axes_prop_[*mesh_.hec_iter(he_sg)][he_sg] == 0 ? 0 : 1;
 
-			if(axis == 1)
-			{
-				for(unsigned int i=0; i<d_path.size(); ++i)
-				{
-					trans_prop_[d_path[i]] = 0;
-					trans_prop_[mesh_.opposite_halfface_handle(d_path[i])] = 0;
-				}
-			}else
-			{
-				trans_prop_[d_path[0]] = 3;
-				trans_prop_[mesh_.opposite_halfface_handle(d_path[0])] = 3;
-				for(unsigned int i=1; i<d_path.size(); ++i)
-				{
-					trans_prop_[d_path[i]] = 0;
-					trans_prop_[mesh_.opposite_halfface_handle(d_path[i])] = 0;
-				}
-			}
+			//record first connection for deferred trans_prop_ assignment
+			int orig_tube_chart = chart_id_[ch_isg];
+			if(tube_first_connection.find(orig_tube_chart) == tube_first_connection.end())
+				tube_first_connection[orig_tube_chart] = std::make_tuple(d_path, axis, vhi);
 
 			//set cell properties
 			for(unsigned int i=0; i<d_path.size(); ++i)
 			{
 				auto ch_path = mesh_.incident_cell(d_path[i]);
-				cell_tag_[ch_path] = 1;
 				chart_id_[ch_path] = chart_id_[ch_isg];
 			}
 
 			update_chart_index_mapping(tube_chart_id, bc_id);
-			unconnected_vh_prop[vhi] = false;
 		}
+
+	//deferred trans_prop_ assignment: once per tube
+	for(auto& kv : tube_first_connection)
+	{
+        auto& [d_path, axis, vhi] = kv.second;
+
+		if(axis == 1)
+		{
+			for(unsigned int i=0; i<d_path.size(); ++i)
+			{
+				trans_prop_[d_path[i]] = 0;
+				trans_prop_[mesh_.opposite_halfface_handle(d_path[i])] = 0;
+			}
+		}else
+		{
+			trans_prop_[d_path[0]] = 3;
+			trans_prop_[mesh_.opposite_halfface_handle(d_path[0])] = 3;
+			for(unsigned int i=1; i<d_path.size(); ++i)
+			{
+				trans_prop_[d_path[i]] = 0;
+				trans_prop_[mesh_.opposite_halfface_handle(d_path[i])] = 0;
+			}
+		}
+
+		// set cell properties
+        for (unsigned int i = 0; i < d_path.size(); ++i) {
+            auto ch_path = mesh_.incident_cell(d_path[i]);
+            cell_tag_[ch_path] = 1;
+        }
+
+		unconnected_vh_prop[vhi] = false;
+	}
 }
 
 
